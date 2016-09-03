@@ -17,10 +17,10 @@ from game import Agent
 import random
 import game
 import util
-from random import shuffle
 
 
-class TrivialSearchAgent(Agent):
+class CarefulGreedyAgent(Agent):
+
     def __init__(self, index=0):
         Agent.__init__(self, index)
         self.lastAction = None
@@ -28,7 +28,7 @@ class TrivialSearchAgent(Agent):
     def getAction(self, state):
 
         dangerousActions = {}
-        pacmanVisionRadius = 3
+        pacmanVisionRadius = 2
 
         legalActions = state.getLegalActions()
         pacmanPosition = state.getPacmanPosition()
@@ -92,18 +92,41 @@ class TrivialSearchAgent(Agent):
 
         print("Dangerous: " + str(list(dangerousActions.keys())))
 
-        if random.uniform(0, 1) < 0.8 \
-                and self.lastAction not in dangerousActions and self.lastAction in legalActions:
-            return self.lastAction
+        recommendableActions = filter(lambda x: x not in dangerousActions, legalActions)
+        if not recommendableActions: return Directions.STOP
+        greedyAction = self.getGreedyAction(state, recommendableActions)
 
-        shuffle(legalActions)
-        for action in legalActions:
-            if action not in dangerousActions and action != Directions.STOP:
-                self.lastAction = action
-                print("Decided to go " + action)
-                return action
+        if greedyAction is None:
+            return Directions.STOP
+        else:
+            return greedyAction
 
-        return legalActions[0]
+        # if random.uniform(0, 1) < 0.8 \
+        #         and self.lastAction not in dangerousActions and self.lastAction in legalActions:
+        #     return self.lastAction
+
+        # shuffle(legalActions)
+        # for action in legalActions:
+        #     if action not in dangerousActions and action != Directions.STOP:
+        #         self.lastAction = action
+        #         print("Decided to go " + action)
+        #         return action
+        #
+        # return legalActions[0]
+
+
+    def getGreedyAction(self, state, availableActions):
+        # Generate candidate actions
+        if Directions.STOP in availableActions: availableActions.remove(Directions.STOP)
+
+        successors = [(state.generateSuccessor(0, action), action) for action in availableActions]
+        scored = [(scoreEvaluation(state), action) for state, action in successors]
+
+        if not scored: return None
+
+        bestScore = max(scored)[0]
+        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        return random.choice(bestActions)
 
 
 class LeftTurnAgent(game.Agent):
