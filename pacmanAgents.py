@@ -17,6 +17,94 @@ from game import Agent
 import random
 import game
 import util
+from random import shuffle
+
+
+class TrivialSearchAgent(Agent):
+    def __init__(self, index=0):
+        Agent.__init__(self, index)
+        self.lastAction = None
+
+    def getAction(self, state):
+
+        dangerousActions = {}
+        pacmanVisionRadius = 3
+
+        legalActions = state.getLegalActions()
+        pacmanPosition = state.getPacmanPosition()
+        ghostPositions = state.getGhostPositions()
+        ghostStates = state.getGhostStates()
+
+        for action in legalActions:
+            if action == Directions.STOP: continue
+
+            nextPacmanState = state.generatePacmanSuccessor(action)
+            nextPacmanPosition = nextPacmanState.getPacmanPosition()
+
+            for ghostNumber, ghostPosition in enumerate(ghostPositions):
+                yDiff = ghostPosition[1] - pacmanPosition[1]
+                xDiff = ghostPosition[0] - pacmanPosition[0]
+
+                if nextPacmanState.isLose():
+                    # We would loose
+                    dangerousActions[action] = True
+                else:
+                    nextYDiff = ghostPosition[1] - nextPacmanPosition[1]
+                    nextXDiff = ghostPosition[0] - nextPacmanPosition[0]
+
+                    ghostInSameColumn = ghostPosition[0] == nextPacmanPosition[0]
+                    ghostInSameRow = ghostPosition[1] == nextPacmanPosition[1]
+
+                    ghostAbove = ghostInSameColumn and yDiff > 0
+                    ghostBelow = ghostInSameColumn and yDiff < 0
+                    ghostRight = ghostInSameRow and xDiff > 0
+                    ghostLeft = ghostInSameRow and xDiff < 0
+
+                    # We would get closer to a ghost by going that way
+                    if abs(nextYDiff) < pacmanVisionRadius and abs(nextYDiff) < abs(yDiff):
+                        if (ghostAbove and Directions.NORTH in legalActions) \
+                                or (ghostBelow and Directions.SOUTH in legalActions):
+                            dangerousActions[action] = True
+
+                    if abs(nextXDiff) < pacmanVisionRadius and abs(nextXDiff) < abs(xDiff):
+                        if (ghostLeft and Directions.WEST in legalActions) \
+                                or (ghostRight and Directions.EAST in legalActions):
+                            dangerousActions[action] = True
+
+                    ghostDirection = ghostStates[ghostNumber].getDirection()
+
+                    # There's a ghost which would kill us once we turn (eg. ghost is going east
+                    # and so we are, but as soon as we go north it would kill us)
+
+                    #                      G->  ||             G = Ghost
+                    #      ==================   ||             P = PacMan
+                    #                         P^||
+
+                    if nextYDiff == 0:
+                        if (nextXDiff == -1 and ghostDirection == Directions.EAST) \
+                                or (nextXDiff == 1 and ghostDirection == Directions.WEST):
+                            dangerousActions[action] = True
+
+                    if nextXDiff == 0:
+                        if (nextYDiff == -1 and ghostDirection == Directions.NORTH) \
+                                or (nextYDiff == 1 and ghostDirection == Directions.SOUTH):
+                            dangerousActions[action] = True
+
+        print("Dangerous: " + str(list(dangerousActions.keys())))
+
+        if random.uniform(0, 1) < 0.8 \
+                and self.lastAction not in dangerousActions and self.lastAction in legalActions:
+            return self.lastAction
+
+        shuffle(legalActions)
+        for action in legalActions:
+            if action not in dangerousActions and action != Directions.STOP:
+                self.lastAction = action
+                print("Decided to go " + action)
+                return action
+
+        return legalActions[0]
+
 
 class LeftTurnAgent(game.Agent):
     "An agent that turns left at every opportunity"
@@ -31,6 +119,7 @@ class LeftTurnAgent(game.Agent):
         if Directions.RIGHT[current] in legal: return Directions.RIGHT[current]
         if Directions.LEFT[left] in legal: return Directions.LEFT[left]
         return Directions.STOP
+
 
 class GreedyAgent(Agent):
     def __init__(self, evalFn="scoreEvaluation"):
@@ -47,6 +136,7 @@ class GreedyAgent(Agent):
         bestScore = max(scored)[0]
         bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
         return random.choice(bestActions)
+
 
 def scoreEvaluation(state):
     return state.getScore()
