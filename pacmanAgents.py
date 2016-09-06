@@ -14,9 +14,9 @@
 
 from pacman import Directions
 from game import Agent
-import random
 import game
 import util
+import random
 
 
 class CarefulGreedyAgent(Agent):
@@ -114,9 +114,8 @@ class CarefulGreedyAgent(Agent):
         #
         # return legalActions[0]
 
-
     def getGreedyAction(self, state, availableActions):
-        # Generate candidate actions
+
         if Directions.STOP in availableActions: availableActions.remove(Directions.STOP)
 
         successors = [(state.generateSuccessor(0, action), action) for action in availableActions]
