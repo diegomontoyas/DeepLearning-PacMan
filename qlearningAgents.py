@@ -10,13 +10,14 @@
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
-
+from keras.layers import Dense, Activation
+from keras.models import Sequential
 
 from game import *
 from learningAgents import ReinforcementAgent
 from featureExtractors import *
-
 import random,util,math
+from operator import itemgetter
 
 class QLearningAgent(ReinforcementAgent):
     """
@@ -42,7 +43,7 @@ class QLearningAgent(ReinforcementAgent):
         "You can initialize Q-values here..."
         ReinforcementAgent.__init__(self, **args)
 
-        "*** YOUR CODE HERE ***"
+        self.model = Sequential()
 
     def getQValue(self, state, action):
         """
@@ -50,28 +51,9 @@ class QLearningAgent(ReinforcementAgent):
           Should return 0.0 if we have never seen a state
           or the Q node value otherwise
         """
-        "*** YOUR CODE HERE ***"
+        # TODO: Proably eligible for elimination
         util.raiseNotDefined()
-
-
-    def computeValueFromQValues(self, state):
-        """
-          Returns max_action Q(state,action)
-          where the max is over legal actions.  Note that if
-          there are no legal actions, which is the case at the
-          terminal state, you should return a value of 0.0.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-    def computeActionFromQValues(self, state):
-        """
-          Compute the best action to take in a state.  Note that if there
-          are no legal actions, which is the case at the terminal state,
-          you should return None.
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #return self.model.predict(state)[Directions.getIndex(action)]
 
     def getAction(self, state):
         """
@@ -86,11 +68,15 @@ class QLearningAgent(ReinforcementAgent):
         """
         # Pick Action
         legalActions = self.getLegalActions(state)
-        action = None
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        legalActions.remove(Directions.STOP)
 
-        return action
+        if util.flipCoin(self.epsilon):
+            return random.choice(legalActions)
+
+        else:
+            qValues = self.model.predict(state)
+            index, element = max(enumerate(qValues), key=itemgetter(1))
+            return Directions.fromIndex(index)
 
     def update(self, state, action, nextState, reward):
         """
@@ -101,7 +87,6 @@ class QLearningAgent(ReinforcementAgent):
           NOTE: You should never call this function,
           it will be called on your behalf
         """
-        "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
     def getPolicy(self, state):
@@ -109,6 +94,9 @@ class QLearningAgent(ReinforcementAgent):
 
     def getValue(self, state):
         return self.computeValueFromQValues(state)
+
+    def getQLearningStateForState(self, state):
+        util.raiseNotDefined()
 
 
 class PacmanQAgent(QLearningAgent):
@@ -143,36 +131,49 @@ class PacmanQAgent(QLearningAgent):
         return action
 
 
-class ApproximateQAgent(PacmanQAgent):
-    """
-       ApproximateQLearningAgent
+class NonDeepQAgent(PacmanQAgent):
 
-       You should only have to overwrite getQValue
-       and update.  All other QLearningAgent functions
-       should work as is.
-    """
     def __init__(self, extractor='IdentityExtractor', **args):
         self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
-        self.weights = util.Counter()
 
-    def getWeights(self):
-        return self.weights
+        inputDimensions = 100
+        outputDimensions = 4
 
-    def getQValue(self, state, action):
-        """
-          Should return Q(state,action) = w * featureVector
-          where * is the dotProduct operator
-        """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Init one-neuron neural network
+        self.model = Sequential()
+        self.model.add(Dense(output_dim=outputDimensions, input_dim=inputDimensions, activation="softmax"))
+        self.model.compile(optimizer='rmsprop', loss='mse')
+
+    def getQLearningStateForState(self, state):
+
+        walls = state.getWalls().flatten()
+        pacmanPosition = state.getPacmanPosition()
+        ghostPositions = state.getGhostPositions().flatten()
+        ghostDirections = [s.getDirection() for s in state.getGhostStates()]
+        pacmanDirection = state.getPacmanState().getPosition()
+
+        return [walls, pacmanPosition, ghostPositions, ghostDirections, pacmanDirection]
 
     def update(self, state, action, nextState, reward):
         """
-           Should update your weights based on transition
+           Update Q-Function based on transition
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        qState = self.getQLearningStateForState(state)
+        actionsQValues = self.model.predict(qState)
+
+        nextQState = self.getQLearningStateForState(nextState)
+        nextActionsQValues = self.model.predict(nextQState)
+        maxNextActionQValue = max(nextActionsQValues)
+
+        #Update rule
+        updatedQValueForAction = reward + self.discount * maxNextActionQValue
+
+        targetQValues = actionsQValues
+        targetQValues[Directions.getIndex(action)] = updatedQValueForAction
+
+        self.model.fit(x=qState, y=targetQValues, nb_epoch=1)
 
     def final(self, state):
         "Called at the end of each game."
@@ -181,6 +182,7 @@ class ApproximateQAgent(PacmanQAgent):
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
+
             # you might want to print your weights here for debugging
-            "*** YOUR CODE HERE ***"
+            print ("Weights: " + str(self.model.layers[0].get_weights()))
             pass

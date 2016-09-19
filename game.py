@@ -67,6 +67,29 @@ class Directions:
                WEST: EAST,
                STOP: STOP}
 
+    @staticmethod
+    def asList():
+        return [Directions.NORTH,
+                Directions.SOUTH,
+                Directions.EAST,
+                Directions.WEST,
+                Directions.STOP]
+
+    @staticmethod
+    def getIndex(direction):
+        """
+        Returns the index of the direction provided
+        """
+        return Directions.asList().index(direction)
+
+    @staticmethod
+    def fromIndex(index):
+        """
+        Returns direction for the index provided
+        """
+        return Directions.asList()[index]
+
+
 class Configuration:
     """
     A Configuration holds the (x,y) coordinate of a character, along with its
