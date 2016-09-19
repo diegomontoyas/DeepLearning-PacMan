@@ -10,14 +10,50 @@
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
-from keras.layers import Dense, Activation
+
+import util
+from operator import itemgetter
+
+from keras.layers import Dense
 from keras.models import Sequential
 
 from game import *
 from learningAgents import ReinforcementAgent
-from featureExtractors import *
-import random,util,math
-from operator import itemgetter
+
+class QStateFactory:
+    class QStates:
+        POSITIONS_WALLS = "POSITIONS_WALLS"
+        POSITIONS_WALLS_DIRECTIONS = "POSITIONS_WALLS_DIRECTIONS"
+
+    @staticmethod
+    def assembleQLearningState(identifier, state):
+
+        if identifier == QStateFactory.QStates.POSITIONS_WALLS:
+            return QStateFactory._assemblePositionsWallsQLearningState(state)
+
+        elif identifier == QStateFactory.QStates.POSITIONS_WALLS_DIRECTIONS:
+            return QStateFactory._assemblePositionsWallsDirectionsQLearningState(state)
+
+        return None
+
+    @staticmethod
+    def _assemblePositionsWallsQLearningState(state):
+
+        walls = state.getWalls().flatten()
+        pacmanPosition = state.getPacmanPosition()
+        ghostPositions = state.getGhostPositions().flatten()
+
+        return [walls, pacmanPosition, ghostPositions]
+
+    @staticmethod
+    def _assemblePositionsWallsDirectionsQLearningState(state):
+
+        positionsWallsState = QStateFactory._assemblePositionsWallsQLearningState(state)
+        ghostDirections = [s.getDirection() for s in state.getGhostStates()]
+        pacmanDirection = state.getPacmanState().getPosition()
+
+        return [positionsWallsState, ghostDirections, pacmanDirection]
+
 
 class QLearningAgent(ReinforcementAgent):
     """
@@ -39,21 +75,19 @@ class QLearningAgent(ReinforcementAgent):
         - self.getLegalActions(state)
           which returns legal actions for a state
     """
+
     def __init__(self, **args):
         "You can initialize Q-values here..."
         ReinforcementAgent.__init__(self, **args)
 
-        self.model = Sequential()
+        self.model = None
 
-    def getQValue(self, state, action):
+    def initModel(self, sampleState):
         """
-          Returns Q(state,action)
-          Should return 0.0 if we have never seen a state
-          or the Q node value otherwise
+        Initializes the deep learning model
+        :param sampleState: A sample state to determine dimensionality
         """
-        # TODO: Proably eligible for elimination
         util.raiseNotDefined()
-        #return self.model.predict(state)[Directions.getIndex(action)]
 
     def getAction(self, state):
         """
@@ -66,6 +100,8 @@ class QLearningAgent(ReinforcementAgent):
           HINT: You might want to use util.flipCoin(prob)
           HINT: To pick randomly from a list, use random.choice(list)
         """
+        if self.model is None: self.initModel(state)
+
         # Pick Action
         legalActions = self.getLegalActions(state)
         legalActions.remove(Directions.STOP)
@@ -89,20 +125,11 @@ class QLearningAgent(ReinforcementAgent):
         """
         util.raiseNotDefined()
 
-    def getPolicy(self, state):
-        return self.computeActionFromQValues(state)
-
-    def getValue(self, state):
-        return self.computeValueFromQValues(state)
-
-    def getQLearningStateForState(self, state):
-        util.raiseNotDefined()
-
 
 class PacmanQAgent(QLearningAgent):
     "Exactly the same as QLearningAgent, but with different default parameters"
 
-    def __init__(self, epsilon=0.05,gamma=0.8,alpha=0.2, numTraining=0, **args):
+    def __init__(self, epsilon=0.05, gamma=0.8, alpha=0.2, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         For example, to change the exploration rate, try:
@@ -126,18 +153,23 @@ class PacmanQAgent(QLearningAgent):
         informs parent of action for Pacman.  Do not change or remove this
         method.
         """
-        action = QLearningAgent.getAction(self,state)
-        self.doAction(state,action)
+        action = QLearningAgent.getAction(self, state)
+        self.doAction(state, action)
         return action
 
 
 class NonDeepQAgent(PacmanQAgent):
-
     def __init__(self, extractor='IdentityExtractor', **args):
         self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
 
-        inputDimensions = 100
+        self.stateID = QStateFactory.QStates.POSITIONS_WALLS
+
+    def initModel(self, sampleState):
+
+        qState = QStateFactory.assembleQLearningState(self.stateID, sampleState)
+
+        inputDimensions = len(qState)
         outputDimensions = 4
 
         # Init one-neuron neural network
@@ -145,29 +177,20 @@ class NonDeepQAgent(PacmanQAgent):
         self.model.add(Dense(output_dim=outputDimensions, input_dim=inputDimensions, activation="softmax"))
         self.model.compile(optimizer='rmsprop', loss='mse')
 
-    def getQLearningStateForState(self, state):
-
-        walls = state.getWalls().flatten()
-        pacmanPosition = state.getPacmanPosition()
-        ghostPositions = state.getGhostPositions().flatten()
-        ghostDirections = [s.getDirection() for s in state.getGhostStates()]
-        pacmanDirection = state.getPacmanState().getPosition()
-
-        return [walls, pacmanPosition, ghostPositions, ghostDirections, pacmanDirection]
-
     def update(self, state, action, nextState, reward):
         """
            Update Q-Function based on transition
         """
+        if self.model is None: self.initModel(state)
 
-        qState = self.getQLearningStateForState(state)
+        qState = QStateFactory.assembleQLearningState(self.stateID, nextState)
         actionsQValues = self.model.predict(qState)
 
-        nextQState = self.getQLearningStateForState(nextState)
+        nextQState = QStateFactory.assembleQLearningState(self.stateID, nextState)
         nextActionsQValues = self.model.predict(nextQState)
         maxNextActionQValue = max(nextActionsQValues)
 
-        #Update rule
+        # Update rule
         updatedQValueForAction = reward + self.discount * maxNextActionQValue
 
         targetQValues = actionsQValues
@@ -182,7 +205,5 @@ class NonDeepQAgent(PacmanQAgent):
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
-
             # you might want to print your weights here for debugging
             print ("Weights: " + str(self.model.layers[0].get_weights()))
-            pass

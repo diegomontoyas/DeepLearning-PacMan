@@ -599,7 +599,7 @@ def loadAgent(pacman, nographics):
         for modulename in moduleNames:
             try:
                 module = __import__(modulename[:-3])
-            except ImportError:
+            except ImportError as e:
                 continue
             if pacman in dir(module):
                 if nographics and modulename == 'keyboardAgents.py':
