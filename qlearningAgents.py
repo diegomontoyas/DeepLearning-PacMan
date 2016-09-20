@@ -11,49 +11,13 @@
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
-import util
-from operator import itemgetter
-
 from keras.layers import Dense
 from keras.models import Sequential
 
 from game import *
 from learningAgents import ReinforcementAgent
-
-class QStateFactory:
-    class QStates:
-        POSITIONS_WALLS = "POSITIONS_WALLS"
-        POSITIONS_WALLS_DIRECTIONS = "POSITIONS_WALLS_DIRECTIONS"
-
-    @staticmethod
-    def assembleQLearningState(identifier, state):
-
-        if identifier == QStateFactory.QStates.POSITIONS_WALLS:
-            return QStateFactory._assemblePositionsWallsQLearningState(state)
-
-        elif identifier == QStateFactory.QStates.POSITIONS_WALLS_DIRECTIONS:
-            return QStateFactory._assemblePositionsWallsDirectionsQLearningState(state)
-
-        return None
-
-    @staticmethod
-    def _assemblePositionsWallsQLearningState(state):
-
-        walls = state.getWalls().flatten()
-        pacmanPosition = state.getPacmanPosition()
-        ghostPositions = state.getGhostPositions().flatten()
-
-        return [walls, pacmanPosition, ghostPositions]
-
-    @staticmethod
-    def _assemblePositionsWallsDirectionsQLearningState(state):
-
-        positionsWallsState = QStateFactory._assemblePositionsWallsQLearningState(state)
-        ghostDirections = [s.getDirection() for s in state.getGhostStates()]
-        pacmanDirection = state.getPacmanState().getPosition()
-
-        return [positionsWallsState, ghostDirections, pacmanDirection]
-
+import numpy as np
+from featureExtractors import *
 
 class QLearningAgent(ReinforcementAgent):
     """
@@ -81,6 +45,7 @@ class QLearningAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
         self.model = None
+        self.featuresExtractor = DistancesExtractor()
 
     def initModel(self, sampleState):
         """
@@ -110,9 +75,17 @@ class QLearningAgent(ReinforcementAgent):
             return random.choice(legalActions)
 
         else:
-            qValues = self.model.predict(state)
-            index, element = max(enumerate(qValues), key=itemgetter(1))
-            return Directions.fromIndex(index)
+            qState = self.featuresExtractor.getFeatures(state, None)
+            qValues = sorted(self.model.predict(np.array([qState])), reverse=False)
+
+            #index, element = max(enumerate(qValues), key=itemgetter(1))
+
+            for index, qValue in enumerate(qValues[0]):
+                action = Directions.fromIndex(index)
+                if action in legalActions:
+                    return action
+
+        return None
 
     def update(self, state, action, nextState, reward):
         """
@@ -160,22 +133,24 @@ class PacmanQAgent(QLearningAgent):
 
 class NonDeepQAgent(PacmanQAgent):
     def __init__(self, extractor='IdentityExtractor', **args):
-        self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
 
-        self.stateID = QStateFactory.QStates.POSITIONS_WALLS
+        self.featuresExtractor = PositionsExtractor()
 
     def initModel(self, sampleState):
 
-        qState = QStateFactory.assembleQLearningState(self.stateID, sampleState)
+        qState = self.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
 
         inputDimensions = len(qState)
         outputDimensions = 4
 
         # Init one-neuron neural network
         self.model = Sequential()
-        self.model.add(Dense(output_dim=outputDimensions, input_dim=inputDimensions, activation="softmax"))
-        self.model.compile(optimizer='rmsprop', loss='mse')
+        self.model.add(Dense(800, input_dim=inputDimensions, activation="relu"))
+        self.model.add(Dense(500, activation="relu"))
+        self.model.add(Dense(outputDimensions, activation="relu"))
+
+        self.model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
     def update(self, state, action, nextState, reward):
         """
@@ -183,20 +158,20 @@ class NonDeepQAgent(PacmanQAgent):
         """
         if self.model is None: self.initModel(state)
 
-        qState = QStateFactory.assembleQLearningState(self.stateID, nextState)
-        actionsQValues = self.model.predict(qState)
+        qState = self.featuresExtractor.getFeatures(state, action)
+        actionsQValues = self.model.predict(np.array([qState]))[0]
 
-        nextQState = QStateFactory.assembleQLearningState(self.stateID, nextState)
-        nextActionsQValues = self.model.predict(nextQState)
+        nextQState = self.featuresExtractor.getFeatures(nextState, None)
+        nextActionsQValues = self.model.predict(np.array([nextQState]))[0]
         maxNextActionQValue = max(nextActionsQValues)
 
         # Update rule
         updatedQValueForAction = reward + self.discount * maxNextActionQValue
 
-        targetQValues = actionsQValues
+        targetQValues = actionsQValues.copy()
         targetQValues[Directions.getIndex(action)] = updatedQValueForAction
 
-        self.model.fit(x=qState, y=targetQValues, nb_epoch=1)
+        self.model.fit(x=np.array([qState]), y=np.array([targetQValues]), nb_epoch=1)
 
     def final(self, state):
         "Called at the end of each game."

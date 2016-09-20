@@ -13,6 +13,7 @@
 
 
 "Feature extractors for Pacman game states"
+import itertools
 
 from game import Directions, Actions
 import util
@@ -101,3 +102,35 @@ class SimpleExtractor(FeatureExtractor):
             features["closest-food"] = float(dist) / (walls.width * walls.height)
         features.divideAll(10.0)
         return features
+
+
+class PositionsExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        walls = []  # list(itertools.chain.from_iterable(state.getWalls()))
+        pacmanPosition = list(state.getPacmanPosition())
+        ghostPositions = list(itertools.chain.from_iterable(state.getGhostPositions()))
+
+        return walls + pacmanPosition + ghostPositions
+
+
+class DistancesExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        pacmanPosition = state.getPacmanPosition()
+        ghostPositions = state.getGhostPositions()
+
+        distances = [[abs(pos[0] - pacmanPosition[0]), abs(pos[1] - pacmanPosition[1])] for pos in ghostPositions]
+        distances = list(itertools.chain.from_iterable(distances))
+
+        return distances
+
+
+class PositionsWallsDirectionsExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        positionsWallsState = PositionsExtractor().getFeatures(state, action)
+        ghostDirections = [Directions.getIndex(s.getDirection()) for s in state.getGhostStates()]
+        pacmanDirection = Directions.getIndex(state.getPacmanState().getDirection())
+
+        return positionsWallsState + ghostDirections + pacmanDirection
