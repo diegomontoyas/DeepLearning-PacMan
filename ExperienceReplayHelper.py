@@ -1,22 +1,20 @@
-import json
+import shelve
 
 
-class ExpereienceReplayHelper:
+class ExperienceReplayHelper:
     def __init__(self, identifier):
         self.identifier = identifier
         self._fileName = "replayMem_" + self.identifier + ".txt"
 
-        try:
-            self.replayMemory = json.load(open(self._fileName))
-        except:
-            self.replayMemory = {}
+        self.replayMemory = shelve.open(self._fileName)
 
     def remember(self, state, action, reward, nextState):
         from game import Directions
-        self.replayMemory[(state, action)] = (state, action, reward, nextState)
+        self.replayMemory[str(state.__hash__()) + str(Directions.getIndex(action))] = (state, action, reward, nextState)
 
     def persist(self):
-        json.dump(self.replayMemory, open(self._fileName, 'w'))
+        self.replayMemory.sync()
+        print("PERSISTING DATA")
 
     def sampleBatch(self, size):
         pass
@@ -49,38 +47,46 @@ class ExpereienceReplayHelper:
         display.initialize(initialState.data)
 
         pendingStates = [initialState]
+        counter = 0
 
         while pendingStates:
+            counter += 1
+
             pendingState = pendingStates.pop(0)
 
             for action in pendingState.getLegalActions():
                 if action == Directions.STOP: continue
 
-                # Execute the action
-                try:
-                    newState = pendingState.generateSuccessor(0, action)
+                def logStateAndUpdateDisplay(newState):
                     display.update(newState.data)
+                    reward = newState.data.score - pendingState.data.score
+                    self.remember(pendingState, action, reward, newState)
+                    print("Saw state. Took action: " + action + ". Received reward " + str(reward))
+
+                try:
+                    # Execute the action
+                    newState = pendingState.generateSuccessor(0, action)
+                    logStateAndUpdateDisplay(newState)
 
                     newState = newState.generateSuccessor(1, agents[1].getAction(newState))
-                    display.update(newState.data)
+                    logStateAndUpdateDisplay(newState)
 
                     newState = newState.generateSuccessor(2, agents[2].getAction(newState))
-                    display.update(newState.data)
+                    logStateAndUpdateDisplay(newState)
 
-                    pendingStates.append(newState)
+                    if not (newState.isWin() or newState.isLose()):
+                        pendingStates.append(newState)
 
-                    reward = newState.data.score - pendingState.data.score
-                    print("Enqueued state. Took action: " + action + ". Received reward " + str(reward))
+                except Exception, e:
+                    print(e)
 
-                    self.remember(pendingState, action, reward, newState)
-                    self.persist()
-
-                except Exception,e:
-                    pass
+            if counter % 50 == 0:
+                self.persist()
 
         display.finish()
         self.persist()
+        self.replayMemory.close()
 
 
 if __name__ == '__main__':
-    ExpereienceReplayHelper("smallGrid").buildExperience(layoutName="smallClassic", displayActive=True)
+    ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallClassic", displayActive=True)
