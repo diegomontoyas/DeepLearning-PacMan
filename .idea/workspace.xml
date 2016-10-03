@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="588606e3-4b9f-425e-8d05-4d6c6cdee07b" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/reinforcement.iml" afterPath="$PROJECT_DIR$/.idea/reinforcement.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/featureExtractors.py" afterPath="$PROJECT_DIR$/featureExtractors.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/game.py" afterPath="$PROJECT_DIR$/game.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/qlearningAgents.py" afterPath="$PROJECT_DIR$/qlearningAgents.py" />
     </list>
     <ignored path="reinforcement.iws" />
@@ -34,7 +32,7 @@
       <file leaf-file-name="pacman.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pacman.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="781">
+            <state relative-caret-position="780">
               <caret line="679" column="0" selection-start-line="679" selection-start-column="0" selection-end-line="679" selection-end-column="0" />
               <folding>
                 <element signature="e#1979#2009#0" expanded="true" />
@@ -46,7 +44,7 @@
       <file leaf-file-name="graphicsDisplay.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/graphicsDisplay.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="508">
+            <state relative-caret-position="3480">
               <caret line="234" column="0" selection-start-line="234" selection-start-column="0" selection-end-line="234" selection-end-column="0" />
               <folding />
             </state>
@@ -66,32 +64,34 @@
       <file leaf-file-name="pacmanAgents.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pacmanAgents.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="16" column="11" selection-start-line="16" selection-start-column="11" selection-end-line="16" selection-end-column="11" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="qlearningAgents.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/qlearningAgents.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="316">
-              <caret line="177" column="38" selection-start-line="177" selection-start-column="38" selection-end-line="177" selection-end-column="38" />
+            <state relative-caret-position="-1287">
+              <caret line="32" column="44" selection-start-line="32" selection-start-column="29" selection-end-line="32" selection-end-column="44" />
               <folding>
-                <element signature="e#667#697#0" expanded="true" />
+                <element signature="e#662#691#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="featureExtractors.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="featureExtractors.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/featureExtractors.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2025">
-              <caret line="135" column="70" selection-start-line="135" selection-start-column="70" selection-end-line="135" selection-end-column="70" />
+            <state relative-caret-position="227">
+              <caret line="116" column="50" selection-start-line="116" selection-start-column="50" selection-end-line="116" selection-end-column="50" />
               <folding>
                 <element signature="e#716#732#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="qlearningAgents.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/qlearningAgents.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="395">
+              <caret line="78" column="67" selection-start-line="78" selection-start-column="63" selection-end-line="78" selection-end-column="67" />
+              <folding>
+                <element signature="e#667#697#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -100,8 +100,8 @@
       <file leaf-file-name="game.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/game.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="206">
-              <caret line="708" column="0" selection-start-line="708" selection-start-column="0" selection-end-line="708" selection-end-column="0" />
+            <state relative-caret-position="270">
+              <caret line="736" column="0" selection-start-line="736" selection-start-column="0" selection-end-line="736" selection-end-column="0" />
               <folding>
                 <element signature="e#1051#1069#0" expanded="true" />
               </folding>
@@ -128,10 +128,10 @@
         <option value="$PROJECT_DIR$/graphicsDisplay.py" />
         <option value="$PROJECT_DIR$/pacmanAgents.py" />
         <option value="$PROJECT_DIR$/util.py" />
-        <option value="$PROJECT_DIR$/game.py" />
         <option value="$PROJECT_DIR$/pacman.py" />
-        <option value="$PROJECT_DIR$/featureExtractors.py" />
+        <option value="$PROJECT_DIR$/game.py" />
         <option value="$PROJECT_DIR$/qlearningAgents.py" />
+        <option value="$PROJECT_DIR$/featureExtractors.py" />
       </list>
     </option>
   </component>
@@ -188,6 +188,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -206,10 +208,22 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="reinforcement" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Pacman" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="layouts" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -217,7 +231,7 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="SearchEverywhereHistoryKey" value="feat&#9;null&#9;null&#10;grid&#9;null&#9;null&#10;direct&#9;null&#9;null&#10;act&#9;null&#9;null&#10;gamesta&#9;null&#9;null&#10;games&#9;null&#9;null&#10;agens&#9;null&#9;null&#10;state&#9;null&#9;null&#10;animatePacman&#9;null&#9;null" />
+    <property name="SearchEverywhereHistoryKey" value="direc&#9;null&#9;null&#10;state&#9;null&#9;null&#10;feat&#9;null&#9;null&#10;grid&#9;null&#9;null&#10;direct&#9;null&#9;null&#10;act&#9;null&#9;null&#10;gamesta&#9;null&#9;null&#10;games&#9;null&#9;null&#10;agens&#9;null&#9;null&#10;animatePacman&#9;null&#9;null" />
     <property name="FullScreen" value="true" />
   </component>
   <component name="RunManager" selected="Python.pacman">
@@ -253,7 +267,7 @@
       <module name="reinforcement" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pacman.py" />
-      <option name="PARAMETERS" value="-p NonDeepQAgent -g DirectionalGhost --frameTime=0.05 -x 3000 -n 3020" />
+      <option name="PARAMETERS" value="-l smallClassic -p DeepQAgent -g DirectionalGhost -x 1500 -n 1510" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <method />
     </configuration>
@@ -428,22 +442,22 @@
     <frame x="0" y="0" width="1920" height="1080" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.12111638" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32886904" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43699187" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.09211928" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32886904" sideWeight="0.5" order="6" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2752976" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.5955285" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.44004065" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3902439" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.14634146" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.48660713" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.48577237" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.5254065" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.37806177" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43699187" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
@@ -469,10 +483,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/qlearningAgents.py</url>
-          <line>183</line>
-          <option name="timeStamp" value="82" />
+          <line>189</line>
+          <option name="timeStamp" value="143" />
         </line-breakpoint>
       </breakpoints>
+      <breakpoints-dialog>
+        <breakpoints-dialog />
+      </breakpoints-dialog>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
@@ -480,37 +497,11 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="83" />
+      <option name="time" value="152" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/textDisplay.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pacmanAgents.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/game.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="10485">
-          <caret line="702" column="27" selection-start-line="702" selection-start-column="27" selection-end-line="702" selection-end-column="27" />
-          <folding>
-            <element signature="e#1051#1069#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/pacman.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -557,7 +548,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
+          <folding>
+            <element signature="e#662#691#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -634,7 +627,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
+          <folding>
+            <element signature="e#662#691#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -777,30 +772,45 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3270">
           <caret line="472" column="34" selection-start-line="472" selection-start-column="34" selection-end-line="472" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/graphicsDisplay.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3480">
+          <caret line="234" column="0" selection-start-line="234" selection-start-column="0" selection-end-line="234" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/learningAgents.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="18" column="6" selection-start-line="18" selection-start-column="6" selection-end-line="18" selection-end-column="6" />
+        <state relative-caret-position="175">
+          <caret line="115" column="8" selection-start-line="115" selection-start-column="8" selection-end-line="115" selection-end-column="8" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file:///usr/local/lib/python2.7/site-packages/keras/engine/training.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="192">
-          <caret line="69" column="0" selection-start-line="69" selection-start-column="0" selection-end-line="69" selection-end-column="0" />
+        <state relative-caret-position="140">
+          <caret line="107" column="0" selection-start-line="107" selection-start-column="0" selection-end-line="107" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/graphicsDisplay.py">
+    <entry file="file:///usr/local/lib/python2.7/site-packages/theano/configparser.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="508">
-          <caret line="234" column="0" selection-start-line="234" selection-start-column="0" selection-end-line="234" selection-end-column="0" />
+        <state relative-caret-position="117">
+          <caret line="330" column="0" selection-start-line="330" selection-start-column="0" selection-end-line="330" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/layouts/smallClassic.lay">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
@@ -815,15 +825,27 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/pacmanAgents.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="16" column="11" selection-start-line="16" selection-start-column="11" selection-end-line="16" selection-end-column="11" />
-          <folding />
+        <state relative-caret-position="-1287">
+          <caret line="32" column="44" selection-start-line="32" selection-start-column="29" selection-end-line="32" selection-end-column="44" />
+          <folding>
+            <element signature="e#662#691#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/game.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="736" column="0" selection-start-line="736" selection-start-column="0" selection-end-line="736" selection-end-column="0" />
+          <folding>
+            <element signature="e#1051#1069#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/pacman.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="781">
+        <state relative-caret-position="780">
           <caret line="679" column="0" selection-start-line="679" selection-start-column="0" selection-end-line="679" selection-end-column="0" />
           <folding>
             <element signature="e#1979#2009#0" expanded="true" />
@@ -833,38 +855,36 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/util.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-150">
-          <caret line="214" column="6" selection-start-line="214" selection-start-column="6" selection-end-line="214" selection-end-column="6" />
+        <state relative-caret-position="45">
+          <caret line="277" column="22" selection-start-line="277" selection-start-column="22" selection-end-line="277" selection-end-column="22" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/game.py">
+    <entry file="file://$USER_HOME$/Library/Caches/PyCharm2016.2/python_stubs/120269359/__builtin__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="206">
-          <caret line="708" column="0" selection-start-line="708" selection-start-column="0" selection-end-line="708" selection-end-column="0" />
+        <state relative-caret-position="270">
+          <caret line="2554" column="8" selection-start-line="2554" selection-start-column="8" selection-end-line="2554" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/qlearningAgents.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="395">
+          <caret line="78" column="67" selection-start-line="78" selection-start-column="63" selection-end-line="78" selection-end-column="67" />
           <folding>
-            <element signature="e#1051#1069#0" expanded="true" />
+            <element signature="e#667#697#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/featureExtractors.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2025">
-          <caret line="135" column="70" selection-start-line="135" selection-start-column="70" selection-end-line="135" selection-end-column="70" />
+        <state relative-caret-position="227">
+          <caret line="116" column="50" selection-start-line="116" selection-start-column="50" selection-end-line="116" selection-end-column="50" />
           <folding>
             <element signature="e#716#732#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/qlearningAgents.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="316">
-          <caret line="177" column="38" selection-start-line="177" selection-start-column="38" selection-end-line="177" selection-end-column="38" />
-          <folding>
-            <element signature="e#667#697#0" expanded="true" />
           </folding>
         </state>
       </provider>

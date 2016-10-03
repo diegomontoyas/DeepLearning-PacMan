@@ -17,6 +17,7 @@ import itertools
 
 from game import Directions, Actions
 import util
+import numpy as np
 
 class FeatureExtractor:
     def getFeatures(self, state, action):
@@ -103,34 +104,48 @@ class SimpleExtractor(FeatureExtractor):
         features.divideAll(10.0)
         return features
 
+class SimpleListExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        qState = np.array(SimpleExtractor().getFeatures(state, action).values()).astype(dtype=float)
+        return qState
 
 class PositionsExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
-        walls = []  # list(itertools.chain.from_iterable(state.getWalls()))
-        pacmanPosition = list(state.getPacmanPosition())
-        ghostPositions = list(itertools.chain.from_iterable(state.getGhostPositions()))
+        pacmanPosition = np.array(state.getPacmanPosition()).flatten()
+        ghostPositions = np.array(state.getGhostPositions()).flatten()
 
-        return walls + pacmanPosition + ghostPositions
+        return np.concatenate((ghostPositions, pacmanPosition)).astype(dtype=float)
 
+class PositionsFoodExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        positionsState = np.array(PositionsExtractor().getFeatures(state, action))
+        food = np.array([state.getFood().data]).flatten()
+
+        return np.concatenate((positionsState, food)).astype(dtype=float)
 
 class DistancesExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
         pacmanPosition = state.getPacmanPosition()
         ghostPositions = state.getGhostPositions()
+        legalActions = np.array([Directions.fromIndex(i) in state.getLegalActions() for i in range(5)])
 
-        distances = [[abs(pos[0] - pacmanPosition[0]), abs(pos[1] - pacmanPosition[1])] for pos in ghostPositions]
-        distances = list(itertools.chain.from_iterable(distances))
+        distances = np.array([[pos[0] - pacmanPosition[0], pos[1] - pacmanPosition[1]] for pos in ghostPositions]).flatten()
+        qState = np.concatenate((distances, legalActions)).astype(dtype=float)
 
-        return distances
+        return qState
 
 
-class PositionsWallsDirectionsExtractor(FeatureExtractor):
+class PositionsDirectionsFoodExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
-        positionsWallsState = PositionsExtractor().getFeatures(state, action)
-        ghostDirections = [Directions.getIndex(s.getDirection()) for s in state.getGhostStates()]
-        pacmanDirection = Directions.getIndex(state.getPacmanState().getDirection())
+        positionsState = np.array(PositionsExtractor().getFeatures(state, action))
+        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
+        pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
+        legalActions = [] #np.array([Directions.fromIndex(i) in state.getLegalActions() for i in range(5)])
+        food = np.array([state.getFood().data]).flatten()
 
-        return positionsWallsState + ghostDirections + pacmanDirection
+        return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions, food)).astype(dtype=float)

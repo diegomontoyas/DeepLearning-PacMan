@@ -13,6 +13,7 @@
 
 from keras.layers import Dense
 from keras.models import Sequential
+import keras
 
 from game import *
 from learningAgents import ReinforcementAgent
@@ -76,11 +77,12 @@ class QLearningAgent(ReinforcementAgent):
 
         else:
             qState = self.featuresExtractor.getFeatures(state, None)
-            qValues = sorted(self.model.predict(np.array([qState])), reverse=False)
+            qValues = list(enumerate(self.model.predict(np.array([qState]))[0]))
+            qValues = sorted(qValues, key=lambda x: x[1], reverse=True)
 
             #index, element = max(enumerate(qValues), key=itemgetter(1))
 
-            for index, qValue in enumerate(qValues[0]):
+            for index, qValue in qValues:
                 action = Directions.fromIndex(index)
                 if action in legalActions:
                     return action
@@ -131,11 +133,11 @@ class PacmanQAgent(QLearningAgent):
         return action
 
 
-class NonDeepQAgent(PacmanQAgent):
+class DeepQAgent(PacmanQAgent):
     def __init__(self, extractor='IdentityExtractor', **args):
         PacmanQAgent.__init__(self, **args)
 
-        self.featuresExtractor = PositionsExtractor()
+        self.featuresExtractor = SimpleListExtractor()
 
     def initModel(self, sampleState):
 
@@ -143,14 +145,17 @@ class NonDeepQAgent(PacmanQAgent):
 
         inputDimensions = len(qState)
         outputDimensions = 4
+        hiddenLayerNeurons = int((inputDimensions+outputDimensions)/2)
 
-        # Init one-neuron neural network
+        # Init neural network
         self.model = Sequential()
-        self.model.add(Dense(800, input_dim=inputDimensions, activation="relu"))
-        self.model.add(Dense(500, activation="relu"))
-        self.model.add(Dense(outputDimensions, activation="relu"))
+        self.model.add(Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="relu", init='lecun_uniform'))
+        self.model.add(Dense(outputDimensions, activation="relu", init='lecun_uniform'))
 
-        self.model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+        optimizer = keras.optimizers.SGD(lr=0.01)
+        #optimizer = 'rmsprop'
+
+        self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
 
     def update(self, state, action, nextState, reward):
         """
@@ -161,17 +166,18 @@ class NonDeepQAgent(PacmanQAgent):
         qState = self.featuresExtractor.getFeatures(state, action)
         actionsQValues = self.model.predict(np.array([qState]))[0]
 
-        nextQState = self.featuresExtractor.getFeatures(nextState, None)
+        nextQState = self.featuresExtractor.getFeatures(nextState, action)
         nextActionsQValues = self.model.predict(np.array([nextQState]))[0]
         maxNextActionQValue = max(nextActionsQValues)
 
         # Update rule
-        updatedQValueForAction = reward + self.discount * maxNextActionQValue
+        updatedQValueForAction = (reward + self.discount * maxNextActionQValue)
 
         targetQValues = actionsQValues.copy()
         targetQValues[Directions.getIndex(action)] = updatedQValueForAction
 
-        self.model.fit(x=np.array([qState]), y=np.array([targetQValues]), nb_epoch=1)
+        #self.model.fit(x=np.array([qState]), y=np.array([targetQValues]), batch_size=1, nb_epoch=200)
+        self.model.train_on_batch(x=np.array([qState]), y=np.array([targetQValues]))
 
     def final(self, state):
         "Called at the end of each game."
