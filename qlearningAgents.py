@@ -15,6 +15,7 @@ from keras.layers import Dense
 from keras.models import Sequential
 import keras
 
+from ExperienceReplayHelper import ExperienceReplayHelper
 from game import *
 from learningAgents import ReinforcementAgent
 import numpy as np
@@ -47,6 +48,8 @@ class QLearningAgent(ReinforcementAgent):
 
         self.model = None
         self.featuresExtractor = DistancesExtractor()
+        self.replayMemory = {}
+        self.batchSize = 32
 
     def initModel(self, sampleState):
         """
@@ -54,6 +57,13 @@ class QLearningAgent(ReinforcementAgent):
         :param sampleState: A sample state to determine dimensionality
         """
         util.raiseNotDefined()
+
+    def remember(self, state, action, reward, nextState):
+        from game import Directions
+        self.replayMemory[str(state.__hash__()) + str(Directions.getIndex(action))] = (state, action, reward, nextState)
+
+    def sampleReplayBatch(self, size):
+        return random.sample(self.replayMemory.values(), size)
 
     def getAction(self, state):
         """
@@ -137,7 +147,8 @@ class DeepQAgent(PacmanQAgent):
     def __init__(self, extractor='IdentityExtractor', **args):
         PacmanQAgent.__init__(self, **args)
 
-        self.featuresExtractor = SimpleListExtractor()
+        self.featuresExtractor = PositionsDirectionsExtractor()
+        self.batchSize = 100
 
     def initModel(self, sampleState):
 
@@ -163,21 +174,38 @@ class DeepQAgent(PacmanQAgent):
         """
         if self.model is None: self.initModel(state)
 
-        qState = self.featuresExtractor.getFeatures(state, action)
-        actionsQValues = self.model.predict(np.array([qState]))[0]
+        self.remember(state, action, reward, nextState)
 
-        nextQState = self.featuresExtractor.getFeatures(nextState, action)
-        nextActionsQValues = self.model.predict(np.array([nextQState]))[0]
-        maxNextActionQValue = max(nextActionsQValues)
+        if len(self.replayMemory) < 100:
+            return
 
-        # Update rule
-        updatedQValueForAction = (reward + self.discount * maxNextActionQValue)
+        rawBatch = self.sampleReplayBatch(self.batchSize)
 
-        targetQValues = actionsQValues.copy()
-        targetQValues[Directions.getIndex(action)] = updatedQValueForAction
+        trainingBatchQStates = []
+        trainingBatchTargetQValues = []
 
-        #self.model.fit(x=np.array([qState]), y=np.array([targetQValues]), batch_size=1, nb_epoch=200)
-        self.model.train_on_batch(x=np.array([qState]), y=np.array([targetQValues]))
+        for aState, anAction, aReward, aNextState in rawBatch:
+
+            qState = self.featuresExtractor.getFeatures(aState, anAction)
+            actionsQValues = self.model.predict(np.array([qState]))[0]
+
+            nextQState = self.featuresExtractor.getFeatures(aNextState, anAction)
+            nextActionsQValues = self.model.predict(np.array([nextQState]))[0]
+            maxNextActionQValue = max(nextActionsQValues)
+
+            # Update rule
+            if aNextState.isWin() or aNextState.isLose():
+                updatedQValueForAction = aReward
+            else:
+                updatedQValueForAction = (aReward + self.discount * maxNextActionQValue)
+
+            targetQValues = actionsQValues.copy()
+            targetQValues[Directions.getIndex(anAction)] = updatedQValueForAction
+
+            trainingBatchQStates.append(qState)
+            trainingBatchTargetQValues.append(targetQValues)
+
+        self.model.train_on_batch(x=np.array(trainingBatchQStates), y=np.array(trainingBatchTargetQValues))
 
     def final(self, state):
         "Called at the end of each game."

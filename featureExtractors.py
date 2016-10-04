@@ -138,6 +138,15 @@ class DistancesExtractor(FeatureExtractor):
 
         return qState
 
+class PositionsDirectionsExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        positionsState = np.array(PositionsExtractor().getFeatures(state, action))
+        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
+        pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
+        legalActions = np.array([Directions.fromIndex(i) in state.getLegalActions() for i in range(5)])
+
+        return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions)).astype(dtype=float)
 
 class PositionsDirectionsFoodExtractor(FeatureExtractor):
 

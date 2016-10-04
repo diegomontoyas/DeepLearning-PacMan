@@ -14,12 +14,12 @@ class ExperienceReplayHelper:
 
     def persist(self):
         self.replayMemory.sync()
-        print("PERSISTING DATA")
+        #print("PERSISTING DATA")
 
     def sampleBatch(self, size):
         pass
 
-    def buildExperience(self, layoutName, displayActive=False):
+    def buildExperience(self, layoutName, displayActive=False, limit=None):
 
         import pacmanAgents, ghostAgents
         from pacman import ClassicGameRules
@@ -46,13 +46,12 @@ class ExperienceReplayHelper:
         initialState = game.state
         display.initialize(initialState.data)
 
-        pendingStates = [initialState]
+        exploredStateHashes = {initialState.__hash__()}
+        pendingStates = {initialState}
         counter = 0
 
         while pendingStates:
-            counter += 1
-
-            pendingState = pendingStates.pop(0)
+            pendingState = pendingStates.pop()
 
             for action in pendingState.getLegalActions():
                 if action == Directions.STOP: continue
@@ -61,32 +60,41 @@ class ExperienceReplayHelper:
                     display.update(newState.data)
                     reward = newState.data.score - pendingState.data.score
                     self.remember(pendingState, action, reward, newState)
-                    print("Saw state. Took action: " + action + ". Received reward " + str(reward))
+                    #print("Saw state. Took action: " + action + ". Received reward " + str(reward))
 
                 try:
                     # Execute the action
                     newState = pendingState.generateSuccessor(0, action)
                     logStateAndUpdateDisplay(newState)
 
-                    newState = newState.generateSuccessor(1, agents[1].getAction(newState))
-                    logStateAndUpdateDisplay(newState)
+                    for ghostIndex in range(1, len(agents)):
+                        newState = newState.generateSuccessor(ghostIndex, agents[ghostIndex].getAction(newState))
+                        logStateAndUpdateDisplay(newState)
 
-                    newState = newState.generateSuccessor(2, agents[2].getAction(newState))
-                    logStateAndUpdateDisplay(newState)
+                    counter += 1
 
-                    if not (newState.isWin() or newState.isLose()):
-                        pendingStates.append(newState)
+                    if not (newState.isWin() or newState.isLose()) and newState.__hash__() not in exploredStateHashes:
+                        exploredStateHashes.add(newState.__hash__())
+                        pendingStates.add(newState)
 
                 except Exception, e:
-                    print(e)
+                    #print(e)
+                    pass
 
-            if counter % 50 == 0:
+            if counter % 100 == 0:
                 self.persist()
+
+            if counter % 2000 == 0:
+                print("Explored " + str(counter) + " states")
+
+            if limit is not None and counter > limit:
+                break
 
         display.finish()
         self.persist()
         self.replayMemory.close()
+        print("Done")
 
 
 if __name__ == '__main__':
-    ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallClassic", displayActive=True)
+    ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallGrid", displayActive=False)
