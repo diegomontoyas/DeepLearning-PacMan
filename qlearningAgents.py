@@ -48,8 +48,10 @@ class QLearningAgent(ReinforcementAgent):
 
         self.model = None
         self.featuresExtractor = DistancesExtractor()
-        self.replayMemory = {}
+        self.replayMemory = []
         self.batchSize = 32
+        self.maxReplayMemorySize = 20000
+        self.minReplayMemorySize = 2000
 
     def initModel(self, sampleState):
         """
@@ -59,11 +61,18 @@ class QLearningAgent(ReinforcementAgent):
         util.raiseNotDefined()
 
     def remember(self, state, action, reward, nextState):
-        from game import Directions
-        self.replayMemory[str(state.__hash__()) + str(Directions.getIndex(action))] = (state, action, reward, nextState)
+
+        if len(self.replayMemory) > self.maxReplayMemorySize:
+            self.replayMemory.pop(0)
+
+        qState = self.featuresExtractor.getFeatures(state, action)
+        nextQState = self.featuresExtractor.getFeatures(nextState, action)
+        isNextStateFinal = nextState.isWin() or nextState.isLose()
+
+        self.replayMemory.append((qState, action, reward, nextQState, isNextStateFinal))
 
     def sampleReplayBatch(self, size):
-        return random.sample(self.replayMemory.values(), size)
+        return random.sample(self.replayMemory, size)
 
     def getAction(self, state):
         """
@@ -176,7 +185,7 @@ class DeepQAgent(PacmanQAgent):
 
         self.remember(state, action, reward, nextState)
 
-        if len(self.replayMemory) < 100:
+        if len(self.replayMemory) < self.minReplayMemorySize:
             return
 
         rawBatch = self.sampleReplayBatch(self.batchSize)
@@ -184,17 +193,15 @@ class DeepQAgent(PacmanQAgent):
         trainingBatchQStates = []
         trainingBatchTargetQValues = []
 
-        for aState, anAction, aReward, aNextState in rawBatch:
+        for aQState, anAction, aReward, aNextQState, isNextStateFinal in rawBatch:
 
-            qState = self.featuresExtractor.getFeatures(aState, anAction)
-            actionsQValues = self.model.predict(np.array([qState]))[0]
+            actionsQValues = self.model.predict(np.array([aQState]))[0]
 
-            nextQState = self.featuresExtractor.getFeatures(aNextState, anAction)
-            nextActionsQValues = self.model.predict(np.array([nextQState]))[0]
+            nextActionsQValues = self.model.predict(np.array([aNextQState]))[0]
             maxNextActionQValue = max(nextActionsQValues)
 
             # Update rule
-            if aNextState.isWin() or aNextState.isLose():
+            if isNextStateFinal:
                 updatedQValueForAction = aReward
             else:
                 updatedQValueForAction = (aReward + self.discount * maxNextActionQValue)
@@ -202,7 +209,7 @@ class DeepQAgent(PacmanQAgent):
             targetQValues = actionsQValues.copy()
             targetQValues[Directions.getIndex(anAction)] = updatedQValueForAction
 
-            trainingBatchQStates.append(qState)
+            trainingBatchQStates.append(aQState)
             trainingBatchTargetQValues.append(targetQValues)
 
         self.model.train_on_batch(x=np.array(trainingBatchQStates), y=np.array(trainingBatchTargetQValues))
