@@ -234,20 +234,5 @@ class DeepQAgent(PacmanQAgent):
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
             # you might want to print your weights here for debugging
-            print ("Weights: " + str(self.model.layers[0].get_weights()))
+            print ("Weights: " + str(self.model.model.layers[0].get_weights()))
 
-class TrainedAgent(Agent):
-    def __init__(self, nn, featuresExtractor):
-        Agent.__init__(self, 0)
-        self.nn = nn
-        self.featuresExtractor = featuresExtractor
-
-    def getAction(self, state):
-        qState = self.featuresExtractor.getFeatures(state, None)
-        qValues = list(enumerate(self.nn.predict(np.array([qState]))[0]))
-        qValues = sorted(qValues, key=lambda x: x[1], reverse=True)
-
-        for index, qValue in qValues:
-            action = Directions.fromIndex(index)
-            if action in state.getLegalActions():
-                return action

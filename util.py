@@ -10,8 +10,7 @@
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
-
-
+import csv
 import sys
 import inspect
 import heapq, random
@@ -651,3 +650,53 @@ def unmutePrint():
     sys.stdout = _ORIGINAL_STDOUT
     #sys.stderr = _ORIGINAL_STDERR
 
+def rescale(value, origRangeMin, origRangeMax, targetRangeMin, targetRangeMax):
+    # Figure out how 'wide' each range is
+    leftSpan = origRangeMax - origRangeMin
+    rightSpan = targetRangeMax - targetRangeMin
+
+    # Convert the left range into a 0-1 range (float)
+    valueScaled = float(value - origRangeMin) / float(leftSpan)
+
+    # Convert the 0-1 range into a value in the right range.
+    return targetRangeMin + (valueScaled * rightSpan)
+
+
+def getSuccessor(agents, display, state, action):
+    # Execute the action
+    newState = state.generateSuccessor(0, action)
+    display.update(newState.data)
+
+    try:
+        for ghostIndex in range(1, len(agents)):
+            newState = newState.generateSuccessor(ghostIndex, agents[ghostIndex].getAction(newState))
+            display.update(newState.data)
+    finally:
+        return newState
+
+class Stats:
+
+    def __init__(self, isOffline, discount, trainingEpisodes, activationFunction, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
+
+        import calendar
+        self.file = open("./training files/training stats/"+ str(calendar.timegm(time.gmtime()))+".csv", 'wt', 0)
+        #self.writer = csv.writer(self.file)
+        self.file.write("Offline: " + str(isOffline)
+                              + " Discount: " + str(discount)
+                              + " TrainingEpisodes: " + str(trainingEpisodes)
+                              + " ActivationFunction: " + str(activationFunction)
+                              + " LearningRate: " + str(learningRate)
+                              + " FeaturesExtractor: " + str(featuresExtractor)
+                              + " InitialEpsilon: " + str(initialEpsilon)
+                              + " FinalEpsilon: " + str(finalEpsilon)
+                              + " BatchSize: " + str(batchSize)
+                              + " EpsilonSteps: " + str(epsilonSteps)
+                              + " Notes: " + str(notes)
+                              + "\n")
+
+    def record(self, loss):
+        self.file.write(str(loss) + "\n")
+
+    def close(self, averageScore20Games, learningTime):
+        self.file.write(("Average score (20 games): " + str(averageScore20Games) + "LearningTime " + str(learningTime)))
+        self.file.close()

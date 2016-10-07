@@ -1,5 +1,7 @@
 import shelve
 
+import util
+
 
 class ExperienceReplayHelper:
     def __init__(self, file):
@@ -23,7 +25,6 @@ class ExperienceReplayHelper:
         from pacman import ClassicGameRules
         from game import Directions
         import layout
-        from pacman import GameState
 
         theLayout = layout.getLayout(layoutName)
         if theLayout == None: raise Exception("The layout " + layoutName + " cannot be found")
@@ -54,20 +55,11 @@ class ExperienceReplayHelper:
             for action in pendingState.getLegalActions():
                 if action == Directions.STOP: continue
 
-                def logStateAndUpdateDisplay(newState):
-                    display.update(newState.data)
-                    reward = newState.data.score - pendingState.data.score
-                    self.remember(pendingState, action, reward, newState)
-                    #print("Saw state. Took action: " + action + ". Received reward " + str(reward))
-
                 try:
                     # Execute the action
-                    newState = pendingState.generateSuccessor(0, action)
-                    logStateAndUpdateDisplay(newState)
-
-                    for ghostIndex in range(1, len(agents)):
-                        newState = newState.generateSuccessor(ghostIndex, agents[ghostIndex].getAction(newState))
-                        logStateAndUpdateDisplay(newState)
+                    newState = util.getSuccessor(agents, display, pendingState, action)
+                    reward = newState.data.score - pendingState.data.score
+                    self.remember(pendingState, action, reward, newState)
 
                     counter += 1
 
@@ -97,9 +89,7 @@ class ExperienceReplayHelper:
     def buildRandomExperience(self, layoutName, displayActive=False, limit=None):
         import pacmanAgents, ghostAgents
         from pacman import ClassicGameRules
-        from game import Directions
         import layout
-        from pacman import GameState
 
         theLayout = layout.getLayout(layoutName)
         if theLayout == None: raise Exception("The layout " + layoutName + " cannot be found")
@@ -126,24 +116,12 @@ class ExperienceReplayHelper:
             currentState = game.state
             display.initialize(currentState.data)
 
-            def logStateAndUpdateDisplay(state, action, force):
-                display.update(state.data)
-                reward = state.data.score - currentState.data.score
-
-                if force or not (state.isWin() or state.isLose()):
-                    self.remember(currentState, action, reward, state)
-
             while not (currentState.isWin() or currentState.isLose()):
                 action = agents[0].getAction(currentState)
-                currentState = currentState.generateSuccessor(0, action)
-                logStateAndUpdateDisplay(currentState, action, force=False)
-
-                try:
-                    for ghostIndex in range(1, len(agents)):
-                        currentState = currentState.generateSuccessor(ghostIndex, agents[ghostIndex].getAction(currentState))
-                        logStateAndUpdateDisplay(currentState, action, force= ghostIndex==len(agents)-1)
-                except Exception, E:
-                    pass
+                newState = util.getSuccessor(agents, display, currentState, action)
+                reward = newState.data.score - currentState.data.score
+                self.remember(currentState, action, reward, newState)
+                currentState = newState
 
                 counter += 1
 
@@ -162,6 +140,6 @@ class ExperienceReplayHelper:
         print("Done")
 
 if __name__ == '__main__':
-    file = "/Users/Diego/Desktop/replayMem_smallGrid.txt"
-    #ExperienceReplayHelper(file).buildRandomExperience(layoutName="smallGrid", displayActive=False)
-    ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallGrid", displayActive=False)
+    file = "./training files/replayMem_smallGrid_2.txt"
+    ExperienceReplayHelper(file).buildRandomExperience(layoutName="smallGrid", displayActive=False)
+    #ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallGrid", displayActive=False)

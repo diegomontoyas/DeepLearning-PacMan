@@ -17,7 +17,7 @@ from game import Agent
 import game
 import util
 import random
-
+import numpy as np
 
 class CarefulGreedyAgent(Agent):
 
@@ -168,3 +168,27 @@ class RandomAgent(Agent):
 
 def scoreEvaluation(state):
     return state.getScore()
+
+
+class TrainedAgent():
+    def __init__(self, nn, featuresExtractor):
+        self.nn = nn
+        self.featuresExtractor = featuresExtractor
+
+    def getAction(self, state, epsilon):
+
+        legalActions = state.getLegalActions()
+        legalActions.remove(Directions.STOP)
+
+        if util.flipCoin(epsilon):
+            return random.choice(legalActions)
+
+        else:
+            qState = self.featuresExtractor.getFeatures(state, None)
+            qValues = list(enumerate(self.nn.predict(np.array([qState]))[0]))
+            qValues = sorted(qValues, key=lambda x: x[1], reverse=True)
+
+            for index, qValue in qValues:
+                action = Directions.fromIndex(index)
+                if action in state.getLegalActions():
+                    return action
