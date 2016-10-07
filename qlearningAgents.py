@@ -49,9 +49,18 @@ class QLearningAgent(ReinforcementAgent):
         self.model = None
         self.featuresExtractor = DistancesExtractor()
         self.replayMemory = []
+
         self.batchSize = 32
+
         self.maxReplayMemorySize = 20000
-        self.minReplayMemorySize = 2000
+        self.minReplayMemorySize = 5000
+
+        self.initialEpsilon = 1
+        self.finalEpsilon = 1
+        self.epsilonSteps = 10000
+        self.epsilon = self.initialEpsilon
+
+        self.updateCount = 0
 
     def initModel(self, sampleState):
         """
@@ -157,7 +166,7 @@ class DeepQAgent(PacmanQAgent):
         PacmanQAgent.__init__(self, **args)
 
         self.featuresExtractor = PositionsDirectionsExtractor()
-        self.batchSize = 100
+        self.discount = 0
 
     def initModel(self, sampleState):
 
@@ -165,12 +174,13 @@ class DeepQAgent(PacmanQAgent):
 
         inputDimensions = len(qState)
         outputDimensions = 4
-        hiddenLayerNeurons = int((inputDimensions+outputDimensions)/2)
+        hiddenLayerNeurons = 20#int((inputDimensions+outputDimensions)/2)
 
         # Init neural network
         self.model = Sequential()
-        self.model.add(Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="relu", init='lecun_uniform'))
-        self.model.add(Dense(outputDimensions, activation="relu", init='lecun_uniform'))
+        self.model.add(Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="tanh", init='uniform'))
+        self.model.add(Dense(hiddenLayerNeurons/2, activation="tanh", init='uniform'))
+        self.model.add(Dense(outputDimensions, activation="tanh", init='uniform'))
 
         optimizer = keras.optimizers.SGD(lr=0.01)
         #optimizer = 'rmsprop'
@@ -183,9 +193,9 @@ class DeepQAgent(PacmanQAgent):
         """
         if self.model is None: self.initModel(state)
 
-        self.remember(state, action, reward, nextState)
+        self.remember(state, action, util.rescale(reward, -510, 1000, -1, 1), nextState)
 
-        if len(self.replayMemory) < self.minReplayMemorySize:
+        if len(self.replayMemory) < 1000:#self.minReplayMemorySize:
             return
 
         rawBatch = self.sampleReplayBatch(self.batchSize)
@@ -213,6 +223,8 @@ class DeepQAgent(PacmanQAgent):
             trainingBatchTargetQValues.append(targetQValues)
 
         self.model.train_on_batch(x=np.array(trainingBatchQStates), y=np.array(trainingBatchTargetQValues))
+        self.updateCount += 1
+        self.epsilon = max(self.finalEpsilon, 1.00 - float(self.updateCount) / float(self.epsilonSteps))
 
     def final(self, state):
         "Called at the end of each game."
@@ -223,3 +235,19 @@ class DeepQAgent(PacmanQAgent):
         if self.episodesSoFar == self.numTraining:
             # you might want to print your weights here for debugging
             print ("Weights: " + str(self.model.layers[0].get_weights()))
+
+class TrainedAgent(Agent):
+    def __init__(self, nn, featuresExtractor):
+        Agent.__init__(self, 0)
+        self.nn = nn
+        self.featuresExtractor = featuresExtractor
+
+    def getAction(self, state):
+        qState = self.featuresExtractor.getFeatures(state, None)
+        qValues = list(enumerate(self.nn.predict(np.array([qState]))[0]))
+        qValues = sorted(qValues, key=lambda x: x[1], reverse=True)
+
+        for index, qValue in qValues:
+            action = Directions.fromIndex(index)
+            if action in state.getLegalActions():
+                return action

@@ -159,6 +159,12 @@ class GreedyAgent(Agent):
         bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
         return random.choice(bestActions)
 
+class RandomAgent(Agent):
+    def getAction(self, state):
+        legalActions = state.getLegalActions()
+        if Directions.STOP in legalActions: legalActions.remove(Directions.STOP)
+
+        return random.choice(legalActions)
 
 def scoreEvaluation(state):
     return state.getScore()

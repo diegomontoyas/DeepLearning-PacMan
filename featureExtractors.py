@@ -131,10 +131,12 @@ class DistancesExtractor(FeatureExtractor):
     def getFeatures(self, state, action):
         pacmanPosition = state.getPacmanPosition()
         ghostPositions = state.getGhostPositions()
-        legalActions = np.array([Directions.fromIndex(i) in state.getLegalActions() for i in range(5)])
+
+        legalActions = getLegalActioins(state)
+        legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(5)])
 
         distances = np.array([[pos[0] - pacmanPosition[0], pos[1] - pacmanPosition[1]] for pos in ghostPositions]).flatten()
-        qState = np.concatenate((distances, legalActions)).astype(dtype=float)
+        qState = np.concatenate((distances, legalActions)).astype(dtype=float)/100
 
         return qState
 
@@ -144,9 +146,11 @@ class PositionsDirectionsExtractor(FeatureExtractor):
         positionsState = np.array(PositionsExtractor().getFeatures(state, action))
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
         pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
-        legalActions = np.array([Directions.fromIndex(i) in state.getLegalActions() for i in range(5)])
 
-        return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions)).astype(dtype=float)
+        legalActions = getLegalActioins(state)
+        legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(5)])
+
+        return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions)).astype(dtype=float)/100
 
 class PositionsDirectionsFoodExtractor(FeatureExtractor):
 
@@ -158,3 +162,130 @@ class PositionsDirectionsFoodExtractor(FeatureExtractor):
         food = np.array([state.getFood().data]).flatten()
 
         return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions, food)).astype(dtype=float)
+
+class ImminentDangerExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        pacmanPosition = state.getPacmanPosition()
+        ghostPositions = state.getGhostPositions()
+        legalActions = [] #np.array([Directions.fromIndex(i) in state.getLegalActions() for i in range(5)])
+
+        distances = np.array([[pos[0] - pacmanPosition[0], pos[1] - pacmanPosition[1]] for pos in ghostPositions]).flatten()
+        qState = np.concatenate((distances, legalActions)).astype(dtype=float)
+
+        return qState
+
+class MatricesExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+
+        def getWallMatrix(state):
+            """ Return matrix with wall coordinates set to 1 """
+            width, height = state.data.layout.width, state.data.layout.height
+            grid = state.data.layout.walls
+            matrix = np.zeros((height, width))
+            matrix.dtype = int
+
+            for i in range(grid.height):
+                for j in range(grid.width):
+                    # Put cell vertically reversed in matrix
+                    cell = 1 if grid[j][i] else 0
+                    matrix[-1 - i][j] = cell
+            return matrix
+
+        def getPacmanMatrix(state):
+            """ Return matrix with pacman coordinates set to 1 """
+            width, height = state.data.layout.width, state.data.layout.height
+            matrix = np.zeros((height, width))
+            matrix.dtype = int
+
+            for agentState in state.data.agentStates:
+                if agentState.isPacman:
+                    pos = agentState.configuration.getPosition()
+                    cell = 1
+                    matrix[-1 - int(pos[1])][int(pos[0])] = cell
+
+            return matrix
+
+        def getGhostMatrix(state):
+            """ Return matrix with ghost coordinates set to 1 """
+            width, height = state.data.layout.width, state.data.layout.height
+            matrix = np.zeros((height, width))
+            matrix.dtype = int
+
+            for agentState in state.data.agentStates:
+                if not agentState.isPacman:
+                    if not agentState.scaredTimer > 0:
+                        pos = agentState.configuration.getPosition()
+                        cell = 1
+                        matrix[-1 - int(pos[1])][int(pos[0])] = cell
+
+            return matrix
+
+        def getScaredGhostMatrix(state):
+            """ Return matrix with ghost coordinates set to 1 """
+            width, height = state.data.layout.width, state.data.layout.height
+            matrix = np.zeros((height, width))
+            matrix.dtype = int
+
+            for agentState in state.data.agentStates:
+                if not agentState.isPacman:
+                    if agentState.scaredTimer > 0:
+                        pos = agentState.configuration.getPosition()
+                        cell = 1
+                        matrix[-1 - int(pos[1])][int(pos[0])] = cell
+
+            return matrix
+
+        def getFoodMatrix(state):
+            """ Return matrix with food coordinates set to 1 """
+            width, height = state.data.layout.width, state.data.layout.height
+            grid = state.data.food
+            matrix = np.zeros((height, width))
+            matrix.dtype = int
+
+            for i in range(grid.height):
+                for j in range(grid.width):
+                    # Put cell vertically reversed in matrix
+                    cell = 1 if grid[j][i] else 0
+                    matrix[-1 - i][j] = cell
+
+            return matrix
+
+        def getCapsulesMatrix(state):
+            """ Return matrix with capsule coordinates set to 1 """
+            width, height = state.data.layout.width, state.data.layout.height
+            capsules = state.data.layout.capsules
+            matrix = np.zeros((height, width))
+            matrix.dtype = int
+
+            for i in capsules:
+                # Insert capsule cells vertically reversed into matrix
+                matrix[-1 - i[1], i[0]] = 1
+
+            return matrix
+
+        # Create observation matrix as a combination of
+        # wall, pacman, ghost, food and capsule matrices
+        # width, height = state.data.layout.width, state.data.layout.height
+        width, height = state.data.layout.width, state.data.layout.height
+        observation = np.zeros((6, height, width))
+
+        #observation[0] = getWallMatrix(state)
+        observation[1] = getPacmanMatrix(state)
+        observation[2] = getGhostMatrix(state)
+        #observation[3] = getScaredGhostMatrix(state)
+        #observation[4] = getFoodMatrix(state)
+        #observation[5] = getCapsulesMatrix(state)
+
+        observation = np.swapaxes(observation, 0, 2).flatten()
+
+        legalActions = getLegalActioins(state)
+        legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(5)])
+
+        return np.concatenate((observation, legalActions)).astype(dtype=float)
+
+def getLegalActioins(state):
+    legalActions = state.getLegalActions()
+    if Directions.STOP in legalActions: legalActions.remove(Directions.STOP)
+    return  legalActions
