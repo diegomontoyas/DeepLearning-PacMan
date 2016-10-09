@@ -694,8 +694,8 @@ class Stats:
                               + " Notes: " + str(notes)
                               + "\n")
 
-    def record(self, loss):
-        self.file.write(str(loss) + "\n")
+    def record(self, trainingLoss, accuracy, winToLoseRatio, epsilon):
+        self.file.write(str(trainingLoss) + "," + str(accuracy) + ", " + str(winToLoseRatio) + "," + str(epsilon) + "\n")
 
     def close(self, averageScore20Games, learningTime):
         self.file.write(("Average score (20 games): " + str(averageScore20Games) + "LearningTime " + str(learningTime)))

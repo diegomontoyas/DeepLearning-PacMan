@@ -27,6 +27,9 @@ class CarefulGreedyAgent(Agent):
 
     def getAction(self, state):
 
+        action, dangerousActions = self._getAction(state)
+
+    def _getAction(self, state):
         dangerousActions = {}
         pacmanVisionRadius = 2
 
@@ -90,16 +93,17 @@ class CarefulGreedyAgent(Agent):
                                 or (nextYDiff == 1 and ghostDirection == Directions.SOUTH):
                             dangerousActions[action] = True
 
-        print("Dangerous: " + str(list(dangerousActions.keys())))
+        #print("Dangerous: " + str(list(dangerousActions.keys())))
+        dangerousActionsList = list(dangerousActions.keys())
 
         recommendableActions = filter(lambda x: x not in dangerousActions, legalActions)
-        if not recommendableActions: return Directions.STOP
+        if not recommendableActions: return Directions.STOP, dangerousActionsList
         greedyAction = self.getGreedyAction(state, recommendableActions)
 
         if greedyAction is None:
-            return Directions.STOP
+            return Directions.STOP, dangerousActionsList
         else:
-            return greedyAction
+            return greedyAction, dangerousActionsList
 
         # if random.uniform(0, 1) < 0.8 \
         #         and self.lastAction not in dangerousActions and self.lastAction in legalActions:
