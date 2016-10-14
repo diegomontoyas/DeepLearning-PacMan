@@ -99,21 +99,28 @@ class TrainingRoom:
 
                 aQState = self.featuresExtractor.getFeatures(state=aState, action=anAction)
                 aNextQState = self.featuresExtractor.getFeatures(state=aNextState, action=anAction)
-
                 actionsQValues = self.model.model.predict(np.array([aQState]))[0]
 
-                nextActionsQValues = self.model.model.predict(np.array([aNextQState]))[0]
-                maxNextActionQValue = max(nextActionsQValues)
-
                 updatedQValueForAction = None
+                targetQValues = actionsQValues.copy()
 
                 # Update rule
                 if aNextState.isWin() or aNextState.isLose():
                     updatedQValueForAction = aReward
+
                 else:
+                    nextActionsQValues = self.model.model.predict(np.array([aNextQState]))[0]
+                    nextStateLegalActionsIndices = [Directions.getIndex(action) for action in aNextState.getLegalActions()]
+
+                    try:
+                        nextStateLegalActionsIndices.remove(4)
+                    except:
+                        pass
+
+                    nextStateLegalActionsQValues = np.array(nextActionsQValues)[nextStateLegalActionsIndices]
+                    maxNextActionQValue = max(nextStateLegalActionsQValues)
                     updatedQValueForAction = (aReward + self.discount * maxNextActionQValue)
 
-                targetQValues = actionsQValues.copy()
                 targetQValues[Directions.getIndex(anAction)] = updatedQValueForAction
 
                 trainingBatchQStates.append(aQState)
@@ -195,9 +202,9 @@ class TrainingRoom:
 
 if __name__ == '__main__':
     trainingRoom = TrainingRoom(layoutName="mediumClassic",
-                                trainingEpisodes=3500,
+                                trainingEpisodes=7000,
                                 replayFile="./training files/replayMem_mediumClassic.txt",
-                                featuresExtractor=DangerousActionsExtractor(),
+                                featuresExtractor=DistancesExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
     trainingRoom.train()

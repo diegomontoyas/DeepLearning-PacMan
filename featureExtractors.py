@@ -57,7 +57,7 @@ def closestFood(pos, food, walls):
         expanded.add((pos_x, pos_y))
         # if we find a food at this location then exit
         if food[pos_x][pos_y]:
-            return dist
+            return dist, (pos_x, pos_y)
         # otherwise spread out from the location to its neighbours
         nbrs = Actions.getLegalNeighbors((pos_x, pos_y), walls)
         for nbr_x, nbr_y in nbrs:
@@ -118,18 +118,19 @@ class PositionsExtractor(FeatureExtractor):
 
         return np.concatenate((ghostPositions, pacmanPosition)).astype(dtype=float)
 
-class PositionsFoodExtractor(FeatureExtractor):
+class PositionsFoodWallsExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
         pacmanPosition = np.array(state.getPacmanPosition()).flatten()
         ghostPositions = np.array(state.getGhostPositions()).flatten()
 
-        legalActions = getLegalActioins(state)
+        #legalActions = getLegalActioins(state)
+        walls = np.array(state.getWalls().data).flatten()
         food = np.array([state.getFood().data]).flatten()
 
-        return np.concatenate((pacmanPosition, ghostPositions, legalActions, food)).astype(dtype=float)/100
+        return np.concatenate((pacmanPosition, ghostPositions, walls, food)).astype(dtype=float)/100
 
-class DistancesFoodExtractor(FeatureExtractor):
+class DistancesExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
         pacmanPosition = state.getPacmanPosition()
@@ -137,15 +138,13 @@ class DistancesFoodExtractor(FeatureExtractor):
 
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
         pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
-
-        legalActions = getLegalActioins(state)
-
-        food = np.array([state.getFood().data]).flatten()
-
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
         distances = np.array([[pos[0] - pacmanPosition[0], pos[1] - pacmanPosition[1]] for pos in ghostPositions]).flatten()
-        qState = np.concatenate((distances, legalActions, ghostDirections, pacmanDirection, food)).astype(dtype=float)/100
 
-        return qState
+        qState = np.concatenate((distances, legalActions, ghostDirections, pacmanDirection, food)).astype(dtype=float)
+
+        return qState/100
 
 class PositionsDirectionsExtractor(FeatureExtractor):
 
@@ -154,7 +153,7 @@ class PositionsDirectionsExtractor(FeatureExtractor):
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
         pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
 
-        legalActions = getLegalActioins(state)
+        legalActions = getLegalActions(state)
         legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(4)])
 
         return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions)).astype(dtype=float)/100
@@ -165,8 +164,8 @@ class PositionsDirectionsFoodExtractor(FeatureExtractor):
         positionsState = np.array(PositionsExtractor().getFeatures(state, action))
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
         pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
-        legalActions = getLegalActioins(state)
-        food = np.array([state.getFood().data]).flatten()
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
 
         return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions, food)).astype(dtype=float)/100
 
@@ -278,19 +277,19 @@ class MatricesExtractor(FeatureExtractor):
         width, height = state.data.layout.width, state.data.layout.height
         observation = np.zeros((6, height, width))
 
-        #observation[0] = getWallMatrix(state)
+        observation[0] = getWallMatrix(state)
         observation[1] = getPacmanMatrix(state)
         observation[2] = getGhostMatrix(state)
         #observation[3] = getScaredGhostMatrix(state)
-        #observation[4] = getFoodMatrix(state)
+        observation[4] = getFoodMatrix(state)
         #observation[5] = getCapsulesMatrix(state)
 
         observation = np.swapaxes(observation, 0, 2).flatten()
 
-        legalActions = getLegalActioins(state)
-        legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(5)])
+        #legalActions = getLegalActioins(state)
+        #legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(5)])
 
-        return np.concatenate((observation, legalActions)).astype(dtype=float)
+        return observation.astype(dtype=float)
 
 class DangerousActionsExtractor(FeatureExtractor):
 
@@ -299,11 +298,23 @@ class DangerousActionsExtractor(FeatureExtractor):
 
         dangerousActions = CarefulGreedyAgent()._getAction(state)[1]
         dangerousActionsBools = np.array([action in dangerousActions for action in Directions.asList() if action != Directions.STOP]).astype(float)
-        legalActions = getLegalActioins(state)
+        legalActions = getLegalActions(state)
 
         return np.concatenate((dangerousActionsBools, legalActions)).astype(dtype=float)
 
-def getLegalActioins(state):
+def getLegalActions(state):
     legalActions = state.getLegalActions()
     if Directions.STOP in legalActions: legalActions.remove(Directions.STOP)
     return np.array([Directions.fromIndex(i) in legalActions for i in range(4)])
+
+def getFoodAroundPacman(state):
+
+    x, y = state.getPacmanPosition()
+    foodMatrix = state.getFood()
+
+    top = foodMatrix[x][y+1]
+    bottom = foodMatrix[x][y-1]
+    left = foodMatrix[x-1][y]
+    right = foodMatrix[x+1][y]
+
+    return np.array([top, bottom, left, right])
