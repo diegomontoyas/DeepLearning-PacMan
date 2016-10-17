@@ -27,11 +27,13 @@ class CarefulGreedyAgent(Agent):
 
     def getAction(self, state):
 
-        action, dangerousActions = self._getAction(state)
+        import featureExtractors
+        qState = featureExtractors.ShortSightedBinaryExtractor().getFeatures(state, None)
+        return self._getAction(state)[0]
 
     def _getAction(self, state):
         dangerousActions = {}
-        pacmanVisionRadius = 2
+        pacmanVisionRadius = 1
 
         legalActions = state.getLegalActions()
         pacmanPosition = state.getPacmanPosition()

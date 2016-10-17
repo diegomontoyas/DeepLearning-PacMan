@@ -133,18 +133,36 @@ class PositionsFoodWallsExtractor(FeatureExtractor):
 class DistancesExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
-        pacmanPosition = state.getPacmanPosition()
-        ghostPositions = state.getGhostPositions()
+        x, y = state.getPacmanPosition()
 
-        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
-        pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
         legalActions = getLegalActions(state)
         food = getFoodAroundPacman(state)
-        distances = np.array([[pos[0] - pacmanPosition[0], pos[1] - pacmanPosition[1]] for pos in ghostPositions]).flatten()
 
-        qState = np.concatenate((distances, legalActions, ghostDirections, pacmanDirection, food)).astype(dtype=float)
+        distances = np.array([[x-gx, y-gy] for gx, gy in state.getGhostPositions()]).flatten()
+        areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
 
-        return qState/100
+        ghostDirections = [Directions.getIndex(s.getDirection()) for s in state.getGhostStates()]
+        capsules = getCapsulesAroundPacman(state)
+
+        qState = np.concatenate((distances, areGhostsScared, capsules, legalActions, food, ghostDirections)).astype(dtype=float)
+
+        return qState/25
+
+class ShortSightedBinaryExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
+
+        ghostsNearby = getGhostsAroundPacman(state)
+        areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
+
+        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
+        capsules = getCapsulesAroundPacman(state)
+
+        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0)).astype(dtype=float)
+        return qState
 
 class PositionsDirectionsExtractor(FeatureExtractor):
 
@@ -311,10 +329,36 @@ def getFoodAroundPacman(state):
 
     x, y = state.getPacmanPosition()
     foodMatrix = state.getFood()
+    return np.array([foodMatrix[x+dx][y+dy] for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]])
 
-    top = foodMatrix[x][y+1]
-    bottom = foodMatrix[x][y-1]
-    left = foodMatrix[x-1][y]
-    right = foodMatrix[x+1][y]
+def getCapsulesAroundPacman(state):
 
-    return np.array([top, bottom, left, right])
+    x, y = state.getPacmanPosition()
+    remainingCapsules = state.getCapsules()
+    return np.array([(x+dx, y+dy) in remainingCapsules for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]])
+
+def getGhostsAroundPacman(state):
+
+    ghostPositions = state.getGhostPositions()
+    x, y = state.getPacmanPosition()
+    ghostsNearby = [0] * 4
+
+    thresh = 2.0
+    for ghostX, ghostY in ghostPositions:
+
+        dx = ghostX-x
+        dy = ghostY-y
+
+        if abs(dx) <= thresh and dy == 0:
+            if dx < 0:
+                ghostsNearby[0] = 1
+            else:
+                ghostsNearby[1] = 1
+
+        if abs(dy) <= thresh and dx == 0:
+            if dy < 0:
+                ghostsNearby[2] = 1
+            else:
+                ghostsNearby[3] = 1
+
+    return ghostsNearby

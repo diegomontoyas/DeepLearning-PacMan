@@ -26,12 +26,13 @@ class TrainingRoom:
         self.finalEpsilon = finalEpsilon
         self.epsilonSteps = epsilonSteps if epsilonSteps is not None else trainingEpisodes * 0.3
         self.epsilon = initialEpsilon
+        self.minExperience = 1000
 
         print("Loading data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
 
         # Init neural network
-        sampleState = self.replayMemory[0][0]
+        sampleState = self.replayMemory[0][0] if self.replayMemory else self.makeGame(False, pacmanAgents.RandomAgent())[0].state
         qState = self.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
 
         self.model = deepLearningModels.OneHiddenLayerReLULinearNN(len(qState))
@@ -52,7 +53,12 @@ class TrainingRoom:
     def sampleReplayBatch(self):
         return random.sample(self.replayMemory, self.batchSize)
 
-    def train(self):
+    def beginTraining(self):
+        import Queue
+        self._queue = Queue.Queue()
+        self._train()
+
+    def _train(self):
         startTime = time.time()
         print("Beginning " + str(self.trainingEpisodes) + " training episodes")
 
@@ -79,12 +85,16 @@ class TrainingRoom:
 
             if len(self.replayMemory) > self.memoryLimit:
                 self.replayMemory.pop(0)
+
             if newState.isWin() or newState.isLose():
                 game, agents, display, rules = self.makeGame(displayActive=False)
                 currentState = game.state
 
                 wins += 1 if newState.isWin() else 0
                 games += 1
+
+            if len(self.replayMemory) < self.minExperience:
+                continue
 
             # Take a raw batch from replay memory
             rawBatch = self.sampleReplayBatch()
@@ -130,7 +140,6 @@ class TrainingRoom:
             trainingLossSum += loss
             accuracySum += accuracy
 
-            episodes += 1
             self.epsilon = max(self.finalEpsilon, 1.00 - float(episodes) / float(self.epsilonSteps))
 
             if episodes % 20 == 0:
@@ -151,6 +160,11 @@ class TrainingRoom:
                 rewardSum = 0
                 accuracySum = 0
 
+            if episodes % 100 == 0:
+                self._queue.put(lambda: self.playOnce(displayActive=True))
+
+            episodes += 1
+
         print("Finished training, turning off epsilon...")
         print("Calculating average score...")
 
@@ -160,17 +174,17 @@ class TrainingRoom:
         scoreSum = 0
 
         while True:
-            scoreSum += self.playOnce()
+            scoreSum += self.playOnce(displayActive = n > 20)
             n += 1
 
             if n == 20:
                 avg = scoreSum/20.0
                 self.stats.close(averageScore20Games=avg, learningTime=(endTime-startTime)/60.0)
-                print("Average score: "+ avg)
+                print("Average score: "+ str(avg))
 
-    def playOnce(self):
+    def playOnce(self, displayActive):
 
-        game, agents, display, rules = self.makeGame(displayActive=True)
+        game, agents, display, rules = self.makeGame(displayActive=displayActive)
         currentState = game.state
         display.initialize(currentState.data)
 
@@ -180,7 +194,7 @@ class TrainingRoom:
 
         return currentState.getScore()
 
-    def makeGame(self, displayActive):
+    def makeGame(self, displayActive, pacmanAgent = None):
 
         if not displayActive:
             import textDisplay
@@ -193,7 +207,7 @@ class TrainingRoom:
         if theLayout == None: raise Exception("The layout " + self.layoutName + " cannot be found")
 
         rules = ClassicGameRules()
-        agents = [pacmanAgents.TrainedAgent(nn=self.model.model, featuresExtractor=self.featuresExtractor)] \
+        agents = [pacmanAgent or pacmanAgents.TrainedAgent(nn=self.model.model, featuresExtractor=self.featuresExtractor)] \
                  + [ghostAgents.DirectionalGhost(i + 1) for i in range(theLayout.getNumGhosts())]
 
         game = rules.newGame(theLayout, agents[0], agents[1:], display)
@@ -202,9 +216,9 @@ class TrainingRoom:
 
 if __name__ == '__main__':
     trainingRoom = TrainingRoom(layoutName="mediumClassic",
-                                trainingEpisodes=7000,
-                                replayFile="./training files/replayMem_mediumClassic.txt",
-                                featuresExtractor=DistancesExtractor(),
+                                trainingEpisodes=3500,
+                                replayFile=None,#"./training files/replayMem_mediumClassic.txt",
+                                featuresExtractor=ShortSightedBinaryExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
-    trainingRoom.train()
+    trainingRoom.beginTraining()
