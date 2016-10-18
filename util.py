@@ -676,7 +676,7 @@ def getSuccessor(agents, display, state, action):
 
 class Stats:
 
-    def __init__(self, isOffline, discount, trainingEpisodes, activationFunction, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
+    def __init__(self, isOffline, discount, trainingEpisodes, model, minExperiences, activationFunction, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
 
         import calendar
         self.file = open("./training files/training stats/"+ str(calendar.timegm(time.gmtime()))+".csv", 'wt', 0)
@@ -684,9 +684,11 @@ class Stats:
         self.file.write("Offline: " + str(isOffline)
                               + " Discount: " + str(discount)
                               + " TrainingEpisodes: " + str(trainingEpisodes)
+                              + " Model: " + type(model).__name__
+                              + " MinExperiences: " + str(minExperiences)
                               + " ActivationFunction: " + str(activationFunction)
                               + " LearningRate: " + str(learningRate)
-                              + " FeaturesExtractor: " + str(featuresExtractor)
+                              + " FeaturesExtractor: " + type(featuresExtractor).__name__
                               + " InitialEpsilon: " + str(initialEpsilon)
                               + " FinalEpsilon: " + str(finalEpsilon)
                               + " BatchSize: " + str(batchSize)

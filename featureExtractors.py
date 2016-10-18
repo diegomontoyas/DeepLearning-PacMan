@@ -92,15 +92,20 @@ class SimpleExtractor(FeatureExtractor):
         # count the number of ghosts 1-step away
         features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
 
-        # if there is no danger of ghosts then add the food feature
-        if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
-            features["eats-food"] = 1.0
+        features["eats-food"] = 1.0 if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y] else 0
 
-        dist = closestFood((next_x, next_y), food, walls)
-        if dist is not None:
-            # make the distance a number less than one otherwise the update
-            # will diverge wildly
-            features["closest-food"] = float(dist) / (walls.width * walls.height)
+        # if there is no danger of ghosts then add the food feature
+        #if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
+        #    features["eats-food"] = 1.0
+
+        dist = closestFood((next_x, next_y), food, walls)[0]
+
+        features["closest-food"] = float(dist) / (walls.width * walls.height) if dist is not None else 1
+
+        # if dist is not None:
+        #     # make the distance a number less than one otherwise the update
+        #     # will diverge wildly
+        #     features["closest-food"] = float(dist) / (walls.width * walls.height)
         features.divideAll(10.0)
         return features
 
@@ -124,11 +129,11 @@ class PositionsFoodWallsExtractor(FeatureExtractor):
         pacmanPosition = np.array(state.getPacmanPosition()).flatten()
         ghostPositions = np.array(state.getGhostPositions()).flatten()
 
-        #legalActions = getLegalActioins(state)
+        legalActions = getLegalActions(state)
         walls = np.array(state.getWalls().data).flatten()
         food = np.array([state.getFood().data]).flatten()
 
-        return np.concatenate((pacmanPosition, ghostPositions, walls, food)).astype(dtype=float)/100
+        return np.concatenate((pacmanPosition, ghostPositions, legalActions, walls, food)).astype(dtype=float)/20
 
 class DistancesExtractor(FeatureExtractor):
 
@@ -163,6 +168,11 @@ class ShortSightedBinaryExtractor(FeatureExtractor):
 
         qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0)).astype(dtype=float)
         return qState
+
+class DoubleShortSightedBinaryExtractor(ShortSightedBinaryExtractor):
+
+    def getFeatures(self, state, action):
+        state = a
 
 class PositionsDirectionsExtractor(FeatureExtractor):
 

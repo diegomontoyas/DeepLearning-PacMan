@@ -190,7 +190,7 @@ class TrainedAgent():
             return random.choice(legalActions)
 
         else:
-            qState = self.featuresExtractor.getFeatures(state, None)
+            qState = self.featuresExtractor.getFeatures(state, Directions.NORTH)
             qValues = list(enumerate(self.nn.predict(np.array([qState]))[0]))
             qValues = sorted(qValues, key=lambda x: x[1], reverse=True)
 

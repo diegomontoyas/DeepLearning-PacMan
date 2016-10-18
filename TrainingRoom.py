@@ -15,7 +15,7 @@ import deepLearningModels
 
 class TrainingRoom:
 
-    def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None):
+    def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None, minExperience = 5000):
         self.featuresExtractor = featuresExtractor
         self.batchSize = batchSize
         self.discount = discount
@@ -26,7 +26,7 @@ class TrainingRoom:
         self.finalEpsilon = finalEpsilon
         self.epsilonSteps = epsilonSteps if epsilonSteps is not None else trainingEpisodes * 0.3
         self.epsilon = initialEpsilon
-        self.minExperience = 1000
+        self.minExperience = minExperience
 
         print("Loading data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
@@ -41,6 +41,8 @@ class TrainingRoom:
         self.stats = util.Stats(isOffline=True,
                                 discount=discount,
                                 trainingEpisodes=trainingEpisodes,
+                                model=self.model,
+                                minExperiences=minExperience,
                                 activationFunction=self.model.activation,
                                 learningRate=self.model.learningRate,
                                 featuresExtractor=featuresExtractor,
@@ -61,9 +63,12 @@ class TrainingRoom:
     def _train(self):
         startTime = time.time()
         print("Beginning " + str(self.trainingEpisodes) + " training episodes")
+        print("Collecting minimum experience before training...")
 
         game, agents, display, rules = self.makeGame(displayActive=False)
-        currentState = game.state
+
+        previousState = game.state
+        currentState = util.getSuccessor(agents, display, previousState, agents[0].getAction(previousState, self.epsilon))
 
         episodes = 0
         trainingLossSum = 0
@@ -78,8 +83,9 @@ class TrainingRoom:
             action = agents[0].getAction(currentState, self.epsilon)
             newState = util.getSuccessor(agents, display, currentState, action)
             reward = newState.getScore() - currentState.getScore()
-            self.replayMemory.append((currentState, action, reward, newState))
+            previousState = currentState
             currentState = newState
+            self.replayMemory.append((currentState, action, reward, newState))
 
             rewardSum += reward
 
@@ -215,10 +221,10 @@ class TrainingRoom:
         return game, agents, display, rules
 
 if __name__ == '__main__':
-    trainingRoom = TrainingRoom(layoutName="mediumClassic",
-                                trainingEpisodes=3500,
+    trainingRoom = TrainingRoom(layoutName="smallClassic",
+                                trainingEpisodes=2000,
                                 replayFile=None,#"./training files/replayMem_mediumClassic.txt",
-                                featuresExtractor=ShortSightedBinaryExtractor(),
+                                featuresExtractor=SimpleListExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
     trainingRoom.beginTraining()
