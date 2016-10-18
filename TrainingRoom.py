@@ -24,7 +24,7 @@ class TrainingRoom:
         self.memoryLimit = memoryLimit
         self.initialEpsilon = initialEpsilon
         self.finalEpsilon = finalEpsilon
-        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else trainingEpisodes * 0.3
+        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else trainingEpisodes * 0.5
         self.epsilon = initialEpsilon
         self.minExperience = minExperience
 
@@ -66,9 +66,7 @@ class TrainingRoom:
         print("Collecting minimum experience before training...")
 
         game, agents, display, rules = self.makeGame(displayActive=False)
-
-        previousState = game.state
-        currentState = util.getSuccessor(agents, display, previousState, agents[0].getAction(previousState, self.epsilon))
+        currentState = game.state
 
         episodes = 0
         trainingLossSum = 0
@@ -76,6 +74,7 @@ class TrainingRoom:
         rewardSum = 0
         wins = 0
         games = 0
+        deaths = 0
 
         while episodes < self.trainingEpisodes:
 
@@ -83,7 +82,6 @@ class TrainingRoom:
             action = agents[0].getAction(currentState, self.epsilon)
             newState = util.getSuccessor(agents, display, currentState, action)
             reward = newState.getScore() - currentState.getScore()
-            previousState = currentState
             currentState = newState
             self.replayMemory.append((currentState, action, reward, newState))
 
@@ -98,6 +96,7 @@ class TrainingRoom:
 
                 wins += 1 if newState.isWin() else 0
                 games += 1
+                deaths += 1 if newState.isLose() else 0
 
             if len(self.replayMemory) < self.minExperience:
                 continue
@@ -160,11 +159,13 @@ class TrainingRoom:
                 print("Total reward for last episodes: " + str(rewardSum))
                 print("Epsilon: " + str(self.epsilon))
                 print("Total wins: " + str(wins))
+                print("Number of deaths: " + str(deaths))
 
                 self.stats.record(averageLoss, averageAccuracy, wins, self.epsilon)
                 trainingLossSum = 0
                 rewardSum = 0
                 accuracySum = 0
+                deaths = 0
 
             if episodes % 100 == 0:
                 self._queue.put(lambda: self.playOnce(displayActive=True))
@@ -222,9 +223,9 @@ class TrainingRoom:
 
 if __name__ == '__main__':
     trainingRoom = TrainingRoom(layoutName="smallClassic",
-                                trainingEpisodes=2000,
+                                trainingEpisodes=10000,
                                 replayFile=None,#"./training files/replayMem_mediumClassic.txt",
-                                featuresExtractor=SimpleListExtractor(),
+                                featuresExtractor=PositionsDirectionsFoodWallsExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
     trainingRoom.beginTraining()

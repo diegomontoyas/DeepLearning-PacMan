@@ -169,33 +169,36 @@ class ShortSightedBinaryExtractor(FeatureExtractor):
         qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0)).astype(dtype=float)
         return qState
 
-class DoubleShortSightedBinaryExtractor(ShortSightedBinaryExtractor):
-
-    def getFeatures(self, state, action):
-        state = a
-
 class PositionsDirectionsExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
         positionsState = np.array(PositionsExtractor().getFeatures(state, action))
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
-        pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
 
         legalActions = getLegalActions(state)
         legalActions = np.array([Directions.fromIndex(i) in legalActions for i in range(4)])
 
-        return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions)).astype(dtype=float)/100
+        return np.concatenate((positionsState, ghostDirections, legalActions)).astype(dtype=float)/100
 
 class PositionsDirectionsFoodExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
         positionsState = np.array(PositionsExtractor().getFeatures(state, action))
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
-        pacmanDirection = np.array([Directions.getIndex(state.getPacmanState().getDirection())])
         legalActions = getLegalActions(state)
-        food = getFoodAroundPacman(state)
+        food = np.array(state.getFood().data).flatten()
 
-        return np.concatenate((positionsState, ghostDirections, pacmanDirection, legalActions, food)).astype(dtype=float)/100
+        return np.concatenate((positionsState, ghostDirections, legalActions, food)).astype(dtype=float)/15
+
+class PositionsDirectionsFoodWallsExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        positionsState = np.array(PositionsExtractor().getFeatures(state, action))
+        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
+        walls = np.array(state.getWalls().data).flatten()
+        food = np.array(state.getFood().data).flatten()
+
+        return np.concatenate((positionsState/15, ghostDirections/4, walls, food)).astype(dtype=float)
 
 class CollisionExtractor(FeatureExtractor):
 
