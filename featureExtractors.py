@@ -169,6 +169,21 @@ class ShortSightedBinaryExtractor(FeatureExtractor):
         qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0)).astype(dtype=float)
         return qState
 
+class ShortSightedBinaryExtractor2(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
+
+        ghostsNearby = getGhostsAroundPacman(state)
+        areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
+
+        capsules = getCapsulesAroundPacman(state)
+
+        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food)).astype(dtype=float)
+        return qState
+
 class PositionsDirectionsExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):

@@ -25,11 +25,12 @@ class TrainingRoom:
         self.epsilonSteps = epsilonSteps if epsilonSteps is not None else trainingEpisodes * 0.5
         self.epsilon = initialEpsilon
         self.minExperience = minExperience
+        self.learningRate = learningRate
 
         print("Loading data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
 
-        self.qFuncManager = QFunctionManagers.NNQFunctionManager(self) if useDeepNN else None
+        self.qFuncManager = QFunctionManagers.NNQFunctionManager(self) if useDeepNN else QFunctionManagers.ApproximateQFunctionManager(self)
 
         #Stats
         self.stats = util.Stats(isOffline=True,
@@ -176,10 +177,14 @@ class TrainingRoom:
         return game, agents, display, rules
 
 if __name__ == '__main__':
-    trainingRoom = TrainingRoom(layoutName="smallClassic",
-                                trainingEpisodes=6000,
-                                replayFile="./training files/replayMem_mediumClassic.txt",
-                                featuresExtractor=ShortSightedBinaryExtractor(),
+    trainingRoom = TrainingRoom(layoutName="mediumClassic",
+                                trainingEpisodes=100,
+                                replayFile=None,#"./training files/replayMem_mediumClassic.txt",
+                                useDeepNN=False,
+                                batchSize=1,
+                                minExperience=1,
+                                learningRate=0.2,
+                                featuresExtractor=SimpleListExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
     trainingRoom.beginTraining()
