@@ -1,21 +1,19 @@
 import shelve
 
-from keras.layers import Dense
-from keras.models import Sequential
-import keras
-
+import deepLearningModels
 import ghostAgents
 import layout
 import pacmanAgents
-import qlearningAgents
-from game import *
+import QFunctionManagers
 from featureExtractors import *
+from game import *
 from pacman import ClassicGameRules
-import deepLearningModels
 
 class TrainingRoom:
 
-    def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None, minExperience = 5000):
+    def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon, useDeepNN=True,
+                 learningRate=None, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None, minExperience = 5000):
+
         self.featuresExtractor = featuresExtractor
         self.batchSize = batchSize
         self.discount = discount
@@ -31,26 +29,20 @@ class TrainingRoom:
         print("Loading data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
 
-        # Init neural network
-        sampleState = self.replayMemory[0][0] if self.replayMemory else self.makeGame(False, pacmanAgents.RandomAgent())[0].state
-        qState = self.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
-
-        self.model = deepLearningModels.OneHiddenLayerReLULinearNN(len(qState))
+        self.qFuncManager = QFunctionManagers.NNQFunctionManager(self) if useDeepNN else None
 
         #Stats
         self.stats = util.Stats(isOffline=True,
                                 discount=discount,
                                 trainingEpisodes=trainingEpisodes,
-                                model=self.model,
                                 minExperiences=minExperience,
-                                activationFunction=self.model.activation,
-                                learningRate=self.model.learningRate,
+                                learningRate=learningRate,
                                 featuresExtractor=featuresExtractor,
                                 initialEpsilon=initialEpsilon,
                                 finalEpsilon=finalEpsilon,
                                 batchSize=batchSize,
                                 epsilonSteps=self.epsilonSteps,
-                                notes="Random data")
+                                notes=self.qFuncManager.getStatsNotes())
 
     def sampleReplayBatch(self):
         return random.sample(self.replayMemory, self.batchSize)
@@ -79,7 +71,7 @@ class TrainingRoom:
         while episodes < self.trainingEpisodes:
 
             # Update replay memory
-            action = agents[0].getAction(currentState, self.epsilon)
+            action = self.qFuncManager.getAction(currentState, epsilon=self.epsilon)
             newState = util.getSuccessor(agents, display, currentState, action)
             reward = newState.getScore() - currentState.getScore()
             currentState = newState
@@ -101,47 +93,9 @@ class TrainingRoom:
             if len(self.replayMemory) < self.minExperience:
                 continue
 
-            # Take a raw batch from replay memory
-            rawBatch = self.sampleReplayBatch()
-
-            trainingBatchQStates = []
-            trainingBatchTargetQValues = []
-
-            # Convert raw states to our q-states and calculate update policy for each transition in batch
-            for aState, anAction, aReward, aNextState in rawBatch:
-
-                #aReward = util.rescale(aReward, -510, 1000, -1, 1)
-
-                aQState = self.featuresExtractor.getFeatures(state=aState, action=anAction)
-                aNextQState = self.featuresExtractor.getFeatures(state=aNextState, action=anAction)
-                actionsQValues = self.model.model.predict(np.array([aQState]))[0]
-
-                updatedQValueForAction = None
-                targetQValues = actionsQValues.copy()
-
-                # Update rule
-                if aNextState.isWin() or aNextState.isLose():
-                    updatedQValueForAction = aReward
-
-                else:
-                    nextActionsQValues = self.model.model.predict(np.array([aNextQState]))[0]
-                    nextStateLegalActionsIndices = [Directions.getIndex(action) for action in aNextState.getLegalActions()]
-
-                    try:
-                        nextStateLegalActionsIndices.remove(4)
-                    except:
-                        pass
-
-                    nextStateLegalActionsQValues = np.array(nextActionsQValues)[nextStateLegalActionsIndices]
-                    maxNextActionQValue = max(nextStateLegalActionsQValues)
-                    updatedQValueForAction = (aReward + self.discount * maxNextActionQValue)
-
-                targetQValues[Directions.getIndex(anAction)] = updatedQValueForAction
-
-                trainingBatchQStates.append(aQState)
-                trainingBatchTargetQValues.append(targetQValues)
-
-            loss, accuracy = self.model.model.train_on_batch(x=np.array(trainingBatchQStates), y=np.array(trainingBatchTargetQValues))
+            # Take and converts a batch from replay memory
+            batch = self.sampleReplayBatch()
+            loss, accuracy = self.qFuncManager.update(batch)
             trainingLossSum += loss
             accuracySum += accuracy
 
@@ -161,7 +115,7 @@ class TrainingRoom:
                 print("Total wins: " + str(wins))
                 print("Number of deaths: " + str(deaths))
 
-                self.stats.record(averageLoss, averageAccuracy, wins, self.epsilon)
+                self.stats.record([averageLoss, averageAccuracy, wins, self.epsilon])
                 trainingLossSum = 0
                 rewardSum = 0
                 accuracySum = 0
@@ -196,12 +150,12 @@ class TrainingRoom:
         display.initialize(currentState.data)
 
         while not (currentState.isWin() or currentState.isLose()):
-            action = agents[0].getAction(state=currentState, epsilon=0)
+            action = self.qFuncManager.getAction(currentState, epsilon=0)
             currentState = util.getSuccessor(agents, display, currentState, action)
 
         return currentState.getScore()
 
-    def makeGame(self, displayActive, pacmanAgent = None):
+    def makeGame(self, displayActive):
 
         if not displayActive:
             import textDisplay
@@ -214,7 +168,7 @@ class TrainingRoom:
         if theLayout == None: raise Exception("The layout " + self.layoutName + " cannot be found")
 
         rules = ClassicGameRules()
-        agents = [pacmanAgent or pacmanAgents.TrainedAgent(nn=self.model.model, featuresExtractor=self.featuresExtractor)] \
+        agents = [pacmanAgents.TrainedAgent()] \
                  + [ghostAgents.DirectionalGhost(i + 1) for i in range(theLayout.getNumGhosts())]
 
         game = rules.newGame(theLayout, agents[0], agents[1:], display)
@@ -223,9 +177,9 @@ class TrainingRoom:
 
 if __name__ == '__main__':
     trainingRoom = TrainingRoom(layoutName="smallClassic",
-                                trainingEpisodes=10000,
-                                replayFile=None,#"./training files/replayMem_mediumClassic.txt",
-                                featuresExtractor=PositionsDirectionsFoodWallsExtractor(),
+                                trainingEpisodes=6000,
+                                replayFile="./training files/replayMem_mediumClassic.txt",
+                                featuresExtractor=ShortSightedBinaryExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
     trainingRoom.beginTraining()

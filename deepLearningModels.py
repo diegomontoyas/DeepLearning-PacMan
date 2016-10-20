@@ -52,7 +52,7 @@ class OneHiddenLayerReLULinearNN:
 
     def __init__(self, inputDimensions):
         outputDimensions = 4
-        hiddenLayerNeurons = 20#int((inputDimensions + outputDimensions) / 2)
+        hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
 
         self.learningRate = 0.01
 

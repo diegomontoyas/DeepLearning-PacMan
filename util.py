@@ -676,7 +676,7 @@ def getSuccessor(agents, display, state, action):
 
 class Stats:
 
-    def __init__(self, isOffline, discount, trainingEpisodes, model, minExperiences, activationFunction, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
+    def __init__(self, isOffline, discount, trainingEpisodes, minExperiences, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
 
         import calendar
         self.file = open("./training files/training stats/"+ str(calendar.timegm(time.gmtime()))+".csv", 'wt', 0)
@@ -684,20 +684,18 @@ class Stats:
         self.file.write("Offline: " + str(isOffline)
                               + " Discount: " + str(discount)
                               + " TrainingEpisodes: " + str(trainingEpisodes)
-                              + " Model: " + type(model).__name__
                               + " MinExperiences: " + str(minExperiences)
-                              + " ActivationFunction: " + str(activationFunction)
                               + " LearningRate: " + str(learningRate)
                               + " FeaturesExtractor: " + type(featuresExtractor).__name__
                               + " InitialEpsilon: " + str(initialEpsilon)
                               + " FinalEpsilon: " + str(finalEpsilon)
                               + " BatchSize: " + str(batchSize)
                               + " EpsilonSteps: " + str(epsilonSteps)
-                              + " Notes: " + str(notes)
+                              + " Notes -> " + str(notes)
                               + "\n")
 
-    def record(self, trainingLoss, accuracy, winToLoseRatio, epsilon):
-        self.file.write(str(trainingLoss) + "," + str(accuracy) + ", " + str(winToLoseRatio) + "," + str(epsilon) + "\n")
+    def record(self, args):
+        self.file.write("".join([str(s or "") + " ," for s in args]) + "\n")
 
     def close(self, averageScore20Games, learningTime):
         self.file.write(("Average score (20 games): " + str(averageScore20Games) + "LearningTime " + str(learningTime)))
