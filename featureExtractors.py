@@ -123,6 +123,16 @@ class PositionsExtractor(FeatureExtractor):
 
         return np.concatenate((ghostPositions, pacmanPosition)).astype(dtype=float)
 
+class PositionsFoodLegalActionsExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+        positionsState = np.array(PositionsExtractor().getFeatures(state, action))
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
+        capsules = getCapsulesAroundPacman(state)
+
+        return np.concatenate((positionsState, legalActions, capsules, food)).astype(dtype=float)#/20
+
 class PositionsFoodWallsExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):

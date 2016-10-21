@@ -12,10 +12,10 @@ class QFunctionManager:
         """
         :param transitionsBatch: List of tuples (qState, action, nextQState, reward)
         """
-        pass
+        raise Exception("Not implemented")
 
     def getAction(self, rawState, epsilon):
-        pass
+        raise Exception("Not implemented")
 
     def getStatsNotes(self):
         pass
@@ -97,43 +97,22 @@ class NNQFunctionManager(QFunctionManager):
             + " ActivationFunction: " + str(self.model.activation) \
             + " NNLearningRate: " + str(self.model.learningRate)
 
-class ApproximateQFunctionManager(QFunctionManager):
-    def __init__(self, trainingRoom):
-        QFunctionManager.__init__(self, trainingRoom)
+class NonDeepQFunctionManager(QFunctionManager):
 
-        sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False)[0].state
-        qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
-        self.weights = [random.uniform(0, 1) for i in range(len(qState))]
+    def getMaxQValue(self, rawState):
 
-    def update(self, transitionsBatch):
+        legalActions = rawState.getLegalActions()
 
-        # Convert raw states to our q-states and calculate update policy for each transition in batch
-        for aState, anAction, aReward, aNextState in transitionsBatch:
+        try:
+            legalActions.remove(Directions.STOP)
+        except:
+            pass
 
-            aQState = self.trainingRoom.featuresExtractor.getFeatures(state=aState, action=anAction)
-
-            legalActions = aNextState.getLegalActions()
-
-            try: legalActions.remove(Directions.STOP)
-            except: pass
-
-            nextStateLegalActionsQValues = [self.getQValue(aNextState, action) for action in legalActions]
-            maxNextActionQValue = max(nextStateLegalActionsQValues or [0])
-
-            for i, value in enumerate(aQState):
-                self.weights[i] += self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aState, anAction)) * value
-
-            return -1, -1
+        nextStateLegalActionsQValues = [self.getQValue(rawState, action) for action in legalActions]
+        return max(nextStateLegalActionsQValues or [0])
 
     def getQValue(self, rawState, action):
-
-        qState = self.trainingRoom.featuresExtractor.getFeatures(state=rawState, action=action)
-
-        qValue = 0.0
-        for i, weight in enumerate(self.weights):
-            qValue += (weight * qState[i])
-
-        return qValue
+        raise Exception("Not implemented")
 
     def getAction(self, rawState, epsilon):
 
@@ -151,3 +130,56 @@ class ApproximateQFunctionManager(QFunctionManager):
                 action = Directions.fromIndex(index)
                 if action in legalActions:
                     return action
+
+class ApproximateQFunctionManager(NonDeepQFunctionManager):
+    def __init__(self, trainingRoom):
+        QFunctionManager.__init__(self, trainingRoom)
+
+        sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False)[0].state
+        qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
+        self.weights = [random.uniform(0, 1) for i in range(len(qState))]
+
+    def update(self, transitionsBatch):
+
+        # Convert raw states to our q-states and calculate update policy for each transition in batch
+        for aState, anAction, aReward, aNextState in transitionsBatch:
+
+            aQState = self.trainingRoom.featuresExtractor.getFeatures(state=aState, action=anAction)
+            maxNextActionQValue = self.getMaxQValue(aNextState)
+
+            for i, value in enumerate(aQState):
+                self.weights[i] += self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aState, anAction)) * value
+
+            return -1, -1
+
+    def getQValue(self, rawState, action):
+
+        qState = self.trainingRoom.featuresExtractor.getFeatures(state=rawState, action=action)
+
+        qValue = 0.0
+        for i, weight in enumerate(self.weights):
+            qValue += (weight * qState[i])
+
+        return qValue
+
+class TableBasedQFunctionManager(NonDeepQFunctionManager):
+    def __init__(self, trainingRoom):
+        QFunctionManager.__init__(self, trainingRoom)
+
+        self.qValues = util.Counter()
+
+    def update(self, transitionsBatch):
+
+        # Convert raw states to our q-states and calculate update policy for each transition in batch
+        for aState, anAction, aReward, aNextState in transitionsBatch:
+
+            aQState = self.trainingRoom.featuresExtractor.getFeatures(state=aState, action=anAction)
+            maxNextActionQValue = self.getMaxQValue(aNextState)
+
+            self.qValues[(aState, anAction)] = self.getQValue(aState, anAction) \
+                + self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aState, anAction))
+
+            return -1, -1
+
+    def getQValue(self, rawState, action):
+        return self.qValues[(rawState, action)] or 0

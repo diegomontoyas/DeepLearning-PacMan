@@ -11,7 +11,7 @@ from pacman import ClassicGameRules
 
 class TrainingRoom:
 
-    def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon, useDeepNN=True,
+    def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon,
                  learningRate=None, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None, minExperience = 5000):
 
         self.featuresExtractor = featuresExtractor
@@ -30,32 +30,31 @@ class TrainingRoom:
         print("Loading data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
 
-        self.qFuncManager = QFunctionManagers.NNQFunctionManager(self) if useDeepNN else QFunctionManagers.ApproximateQFunctionManager(self)
-
-        #Stats
-        self.stats = util.Stats(isOffline=True,
-                                discount=discount,
-                                trainingEpisodes=trainingEpisodes,
-                                minExperiences=minExperience,
-                                learningRate=learningRate,
-                                featuresExtractor=featuresExtractor,
-                                initialEpsilon=initialEpsilon,
-                                finalEpsilon=finalEpsilon,
-                                batchSize=batchSize,
-                                epsilonSteps=self.epsilonSteps,
-                                notes=self.qFuncManager.getStatsNotes())
-
     def sampleReplayBatch(self):
         return random.sample(self.replayMemory, self.batchSize)
 
-    def beginTraining(self):
+    def beginTraining(self, qFunctionManager):
         import Queue
         self._queue = Queue.Queue()
+        self.qFuncManager = qFunctionManager
         self._train()
 
     def _train(self):
         startTime = time.time()
         print("Beginning " + str(self.trainingEpisodes) + " training episodes")
+
+        self.stats = util.Stats(isOffline=True,
+                                discount=self.discount,
+                                trainingEpisodes=self.trainingEpisodes,
+                                minExperiences=self.minExperience,
+                                learningRate=self.learningRate,
+                                featuresExtractor=self.featuresExtractor,
+                                initialEpsilon=self.initialEpsilon,
+                                finalEpsilon=self.finalEpsilon,
+                                batchSize=self.batchSize,
+                                epsilonSteps=self.epsilonSteps,
+                                notes=self.qFuncManager.getStatsNotes())
+
         print("Collecting minimum experience before training...")
 
         game, agents, display, rules = self.makeGame(displayActive=False)
@@ -177,14 +176,13 @@ class TrainingRoom:
         return game, agents, display, rules
 
 if __name__ == '__main__':
-    trainingRoom = TrainingRoom(layoutName="mediumClassic",
-                                trainingEpisodes=100,
+    trainingRoom = TrainingRoom(layoutName="smallGrid",
+                                trainingEpisodes=5000,
                                 replayFile=None,#"./training files/replayMem_mediumClassic.txt",
-                                useDeepNN=False,
-                                batchSize=1,
-                                minExperience=1,
+                                batchSize=10,
+                                minExperience=500,
                                 learningRate=0.2,
-                                featuresExtractor=SimpleListExtractor(),
+                                featuresExtractor=PositionsFoodLegalActionsExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
-    trainingRoom.beginTraining()
+    trainingRoom.beginTraining(QFunctionManagers.ApproximateQFunctionManager(trainingRoom))
