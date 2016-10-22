@@ -10,6 +10,9 @@ from game import *
 from pacman import ClassicGameRules
 
 class TrainingRoom:
+    """
+    Where training happens
+    """
 
     def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon,
                  learningRate=None, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None, minExperience = 5000):
@@ -22,18 +25,25 @@ class TrainingRoom:
         self.memoryLimit = memoryLimit
         self.initialEpsilon = initialEpsilon
         self.finalEpsilon = finalEpsilon
-        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else trainingEpisodes * 0.5
+        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else min(trainingEpisodes * 0.5, 100000)
         self.epsilon = initialEpsilon
         self.minExperience = minExperience
         self.learningRate = learningRate
 
-        print("Loading data...")
+        print("Loading replay data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
 
     def sampleReplayBatch(self):
+        """
+        Take a random batch of self.batchSize of transitions from replay memory
+        """
         return random.sample(self.replayMemory, self.batchSize)
 
     def beginTraining(self, qFunctionManager):
+        """
+        Begin the training
+        :param qFunctionManager: The manager to use as Q function
+        """
         import Queue
         self._queue = Queue.Queue()
         self.qFuncManager = qFunctionManager
@@ -115,7 +125,7 @@ class TrainingRoom:
                 print("Total wins: " + str(wins))
                 print("Number of deaths: " + str(deaths))
 
-                self.stats.record([averageLoss, averageAccuracy, wins, self.epsilon])
+                #self.stats.record([averageLoss, averageAccuracy, wins, self.epsilon])
                 trainingLossSum = 0
                 rewardSum = 0
                 accuracySum = 0
@@ -144,6 +154,11 @@ class TrainingRoom:
                 print("Average score: "+ str(avg))
 
     def playOnce(self, displayActive):
+        """
+        Play one game with what we have learned so far. Actions are taken with an epsilon of 0
+        :param displayActive: True or False to indicate if the display should be active
+        :return: The score achieved in the game after winning or loosing.
+        """
 
         game, agents, display, rules = self.makeGame(displayActive=displayActive)
         currentState = game.state
@@ -156,6 +171,11 @@ class TrainingRoom:
         return currentState.getScore()
 
     def makeGame(self, displayActive):
+        """
+        Make a game
+        :param displayActive: True or False to indicate if the display should be active
+        :return: game, agents, display, rules
+        """
 
         if not displayActive:
             import textDisplay
@@ -176,13 +196,13 @@ class TrainingRoom:
         return game, agents, display, rules
 
 if __name__ == '__main__':
-    trainingRoom = TrainingRoom(layoutName="smallGrid",
-                                trainingEpisodes=5000,
-                                replayFile=None,#"./training files/replayMem_mediumClassic.txt",
-                                batchSize=10,
-                                minExperience=500,
+    trainingRoom = TrainingRoom(layoutName="mediumClassic",
+                                trainingEpisodes=50000,
+                                replayFile="./training files/replayMem_mediumClassic.txt",
+                                batchSize=1,
+                                minExperience=1,
                                 learningRate=0.2,
                                 featuresExtractor=PositionsFoodLegalActionsExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05)
-    trainingRoom.beginTraining(QFunctionManagers.ApproximateQFunctionManager(trainingRoom))
+    trainingRoom.beginTraining(QFunctionManagers.NNQFunctionManager(trainingRoom))

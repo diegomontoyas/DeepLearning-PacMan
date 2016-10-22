@@ -5,22 +5,40 @@ from game import Directions, random
 import numpy as np
 
 class QFunctionManager:
+    """
+    An abstract class which Q function managers should inherit from
+    """
+
     def __init__(self, trainingRoom):
+        """
+        :param trainingRoom: The room (TrainingRoom) in which we are training in
+        """
         self.trainingRoom = trainingRoom
 
     def update(self, transitionsBatch):
         """
+        Update the Q-Values from the given batch of transitions
         :param transitionsBatch: List of tuples (qState, action, nextQState, reward)
         """
         raise Exception("Not implemented")
 
     def getAction(self, rawState, epsilon):
+        """
+        Choose the best action to take
+        :param rawState: The state
+        :param epsilon: Epsilon value to use when taking the action
+        :return: Action (Direction) to take
+        """
         raise Exception("Not implemented")
 
     def getStatsNotes(self):
         pass
 
 class NNQFunctionManager(QFunctionManager):
+    """
+    A manager that uses a Neural Network to approximate the Q-Function
+    """
+
     def __init__(self, trainingRoom):
         QFunctionManager.__init__(self, trainingRoom)
 
@@ -41,7 +59,7 @@ class NNQFunctionManager(QFunctionManager):
             # aReward = util.rescale(aReward, -510, 1000, -1, 1)
 
             aQState = self.trainingRoom.featuresExtractor.getFeatures(state=aState, action=anAction)
-            aNextQState = self.trainingRoom.featuresExtractor.getFeatures(state=aNextState, action=anAction)
+            aNextQState = self.trainingRoom.featuresExtractor.getFeatures(state=aNextState, action=None)
 
             actionsQValues = self.model.model.predict(np.array([aQState]))[0]
 
@@ -56,10 +74,8 @@ class NNQFunctionManager(QFunctionManager):
                 nextActionsQValues = self.model.model.predict(np.array([aNextQState]))[0]
                 nextStateLegalActionsIndices = [Directions.getIndex(action) for action in aNextState.getLegalActions()]
 
-                try:
-                    nextStateLegalActionsIndices.remove(4)
-                except:
-                    pass
+                try: nextStateLegalActionsIndices.remove(4)
+                except: pass
 
                 nextStateLegalActionsQValues = np.array(nextActionsQValues)[nextStateLegalActionsIndices]
                 maxNextActionQValue = max(nextStateLegalActionsQValues)
@@ -77,7 +93,7 @@ class NNQFunctionManager(QFunctionManager):
         legalActions = rawState.getLegalActions()
         legalActions.remove(Directions.STOP)
 
-        qState = self.trainingRoom.featuresExtractor.getFeatures(rawState, Directions.NORTH)
+        qState = self.trainingRoom.featuresExtractor.getFeatures(rawState, None)
 
         if util.flipCoin(epsilon):
             return random.choice(legalActions)
@@ -98,21 +114,17 @@ class NNQFunctionManager(QFunctionManager):
             + " NNLearningRate: " + str(self.model.learningRate)
 
 class NonDeepQFunctionManager(QFunctionManager):
+    def getQValue(self, qState, action):
+        raise Exception("Not implemented")
 
     def getMaxQValue(self, rawState):
 
         legalActions = rawState.getLegalActions()
-
-        try:
-            legalActions.remove(Directions.STOP)
-        except:
-            pass
+        try: legalActions.remove(Directions.STOP)
+        except: pass
 
         nextStateLegalActionsQValues = [self.getQValue(rawState, action) for action in legalActions]
         return max(nextStateLegalActionsQValues or [0])
-
-    def getQValue(self, rawState, action):
-        raise Exception("Not implemented")
 
     def getAction(self, rawState, epsilon):
 
@@ -132,12 +144,25 @@ class NonDeepQFunctionManager(QFunctionManager):
                     return action
 
 class ApproximateQFunctionManager(NonDeepQFunctionManager):
+    """
+    A manager that uses hand updated weights to approximate the Q-Function
+    """
+
     def __init__(self, trainingRoom):
         QFunctionManager.__init__(self, trainingRoom)
 
         sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False)[0].state
         qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
         self.weights = [random.uniform(0, 1) for i in range(len(qState))]
+
+    def getQValue(self, rawState, action):
+        qState = self.trainingRoom.featuresExtractor.getFeatures(rawState, action)
+
+        qValue = 0.0
+        for i, weight in enumerate(self.weights):
+            qValue += (weight * qState[i])
+
+        return qValue
 
     def update(self, transitionsBatch):
 
@@ -152,21 +177,18 @@ class ApproximateQFunctionManager(NonDeepQFunctionManager):
 
             return -1, -1
 
-    def getQValue(self, rawState, action):
-
-        qState = self.trainingRoom.featuresExtractor.getFeatures(state=rawState, action=action)
-
-        qValue = 0.0
-        for i, weight in enumerate(self.weights):
-            qValue += (weight * qState[i])
-
-        return qValue
-
 class TableBasedQFunctionManager(NonDeepQFunctionManager):
+    """
+    A manager that uses a traditional table to store the Q-values
+    """
+
     def __init__(self, trainingRoom):
         QFunctionManager.__init__(self, trainingRoom)
 
-        self.qValues = util.Counter()
+        self.qValues = {}
+
+    def getQValue(self, qState, action):
+        return self.qValues.get((str(qState), action)) or 0
 
     def update(self, transitionsBatch):
 
@@ -174,12 +196,10 @@ class TableBasedQFunctionManager(NonDeepQFunctionManager):
         for aState, anAction, aReward, aNextState in transitionsBatch:
 
             aQState = self.trainingRoom.featuresExtractor.getFeatures(state=aState, action=anAction)
+
             maxNextActionQValue = self.getMaxQValue(aNextState)
 
-            self.qValues[(aState, anAction)] = self.getQValue(aState, anAction) \
-                + self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aState, anAction))
+            self.qValues[(str(aQState), anAction)] = self.getQValue(aQState, anAction) \
+                + self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aQState, anAction))
 
             return -1, -1
-
-    def getQValue(self, rawState, action):
-        return self.qValues[(rawState, action)] or 0

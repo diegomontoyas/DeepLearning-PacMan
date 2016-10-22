@@ -98,7 +98,8 @@ class SimpleExtractor(FeatureExtractor):
         #if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
         #    features["eats-food"] = 1.0
 
-        dist = closestFood((next_x, next_y), food, walls)[0]
+        cFood = closestFood((next_x, next_y), food, walls)
+        dist = cFood[0] if cFood else None
 
         features["closest-food"] = float(dist) / (walls.width * walls.height) if dist is not None else 1
 
@@ -179,9 +180,12 @@ class ShortSightedBinaryExtractor(FeatureExtractor):
         qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0)).astype(dtype=float)
         return qState
 
-class ShortSightedBinaryExtractor2(FeatureExtractor):
+class ShortSightedBinaryClosestFoodExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
+
+        boardSize = getBoardSize(state)
+        maxBoardSize = max(boardSize[0], boardSize[1])
 
         legalActions = getLegalActions(state)
         food = getFoodAroundPacman(state)
@@ -189,9 +193,12 @@ class ShortSightedBinaryExtractor2(FeatureExtractor):
         ghostsNearby = getGhostsAroundPacman(state)
         areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
 
+        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
         capsules = getCapsulesAroundPacman(state)
 
-        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food)).astype(dtype=float)
+        closestFoodDistance = closestFood((state.getPacmanPosition()), state.getFood(), state.getWalls())[0] or 0
+
+        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0, closestFoodDistance/maxBoardSize)).astype(dtype=float)
         return qState
 
 class PositionsDirectionsExtractor(FeatureExtractor):
@@ -357,6 +364,16 @@ class DangerousActionsExtractor(FeatureExtractor):
         legalActions = getLegalActions(state)
 
         return np.concatenate((dangerousActionsBools, legalActions)).astype(dtype=float)
+
+################################################
+#                                              #
+#              HELPER FUNCTIONS                #
+#                                              #
+################################################
+
+def getBoardSize(state):
+    layout = state.data.layout
+    return (layout.width, layout.height)
 
 def getLegalActions(state):
     legalActions = state.getLegalActions()
