@@ -679,8 +679,11 @@ class Stats:
     def __init__(self, isOffline, discount, trainingEpisodes, minExperiences, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
 
         import calendar
-        self.file = open("./training files/training stats/"+ str(calendar.timegm(time.gmtime()))+".csv", 'wt', 0)
+        self.fileName = "./training files/training stats/" + str(calendar.timegm(time.gmtime()))
+        self.file = open(self.fileName + ".csv", 'wt', 0)
+
         #self.writer = csv.writer(self.file)
+
         self.file.write("Offline: " + str(isOffline)
                               + " Discount: " + str(discount)
                               + " TrainingEpisodes: " + str(trainingEpisodes)

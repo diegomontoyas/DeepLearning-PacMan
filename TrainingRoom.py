@@ -15,7 +15,8 @@ class TrainingRoom:
     """
 
     def __init__(self, layoutName, trainingEpisodes, replayFile, featuresExtractor, initialEpsilon, finalEpsilon,
-                 learningRate=None, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None, minExperience = 5000):
+                 learningRate=None, discount = 0.8, batchSize = 32, memoryLimit = 50000, epsilonSteps = None,
+                 minExperience = 5000, useExperienceReplay = True):
 
         self.featuresExtractor = featuresExtractor
         self.batchSize = batchSize
@@ -25,10 +26,11 @@ class TrainingRoom:
         self.memoryLimit = memoryLimit
         self.initialEpsilon = initialEpsilon
         self.finalEpsilon = finalEpsilon
-        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else min(trainingEpisodes * 0.5, 100000)
+        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else min(trainingEpisodes * 0.2, 100000)
         self.epsilon = initialEpsilon
         self.minExperience = minExperience
         self.learningRate = learningRate
+        self.useExperienceReplay = useExperienceReplay
 
         print("Loading replay data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
@@ -66,6 +68,10 @@ class TrainingRoom:
                                 notes=self.qFuncManager.getStatsNotes())
 
         print("Collecting minimum experience before training...")
+
+        # # games, agents, displays, rules
+        # gamesInfo = [self.makeGame(displayActive=False) for _ in range(2)]
+        # currentStates = [g[0].state for g in gamesInfo]
 
         game, agents, display, rules = self.makeGame(displayActive=False)
         currentState = game.state
@@ -125,16 +131,25 @@ class TrainingRoom:
                 print("Total wins: " + str(wins))
                 print("Number of deaths: " + str(deaths))
 
-                #self.stats.record([averageLoss, averageAccuracy, wins, self.epsilon])
+                self.stats.record([episodes, averageLoss, averageAccuracy, rewardSum, self.epsilon, wins, deaths])
                 trainingLossSum = 0
                 rewardSum = 0
                 accuracySum = 0
                 deaths = 0
 
+                try:
+                    self.qFuncManager.saveCheckpoint(self.stats.fileName + ".chkpt")
+                except:
+                    pass
+
             if episodes % 100 == 0:
-                self._queue.put(lambda: self.playOnce(displayActive=True))
+                pass
+                #self._queue.put(lambda: self.playOnce(displayActive=True))
 
             episodes += 1
+
+            if not self.useExperienceReplay:
+                self.replayMemory = []
 
         print("Finished training, turning off epsilon...")
         print("Calculating average score...")
@@ -196,13 +211,17 @@ class TrainingRoom:
         return game, agents, display, rules
 
 if __name__ == '__main__':
-    trainingRoom = TrainingRoom(layoutName="mediumClassic",
-                                trainingEpisodes=50000,
-                                replayFile="./training files/replayMem_mediumClassic.txt",
-                                batchSize=1,
-                                minExperience=1,
+
+    trainingRoom = TrainingRoom(layoutName="smallClassic",
+                                trainingEpisodes=40000,
+                                replayFile=None,#"./training files/replayMem_mediumClassic.txt",
+                                batchSize=600,
+                                discount=0.95,
+                                minExperience=600,
                                 learningRate=0.2,
-                                featuresExtractor=PositionsFoodLegalActionsExtractor(),
+                                featuresExtractor=DistancesExtractor(),
                                 initialEpsilon=1,
-                                finalEpsilon=0.05)
+                                finalEpsilon=0.05,
+                                useExperienceReplay=False)
+
     trainingRoom.beginTraining(QFunctionManagers.NNQFunctionManager(trainingRoom))

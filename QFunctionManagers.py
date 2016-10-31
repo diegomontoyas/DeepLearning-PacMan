@@ -39,14 +39,18 @@ class NNQFunctionManager(QFunctionManager):
     A manager that uses a Neural Network to approximate the Q-Function
     """
 
-    def __init__(self, trainingRoom):
+    def __init__(self, trainingRoom, checkPointFile = None):
         QFunctionManager.__init__(self, trainingRoom)
 
         # Init neural network
         sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False)[0].state
         qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
 
-        self.model = deepLearningModels.OneHiddenLayerReLULinearNN(len(qState))
+        if checkPointFile is None:
+            self.model = deepLearningModels.TwoHiddenLayersLargeTanhLinearNN(len(qState))
+        else:
+            import keras
+            self.model = keras.models.load_model(checkPointFile)
 
     def update(self, transitionsBatch):
 
@@ -63,7 +67,6 @@ class NNQFunctionManager(QFunctionManager):
 
             actionsQValues = self.model.model.predict(np.array([aQState]))[0]
 
-            updatedQValueForAction = None
             targetQValues = actionsQValues.copy()
 
             # Update rule
@@ -112,6 +115,9 @@ class NNQFunctionManager(QFunctionManager):
         return " Model: " + type(self.model).__name__ \
             + " ActivationFunction: " + str(self.model.activation) \
             + " NNLearningRate: " + str(self.model.learningRate)
+
+    def saveCheckpoint(self, file):
+        self.model.model.save(file)
 
 class NonDeepQFunctionManager(QFunctionManager):
     def getQValue(self, qState, action):
