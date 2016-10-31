@@ -43,7 +43,7 @@ class NNQFunctionManager(QFunctionManager):
         QFunctionManager.__init__(self, trainingRoom)
 
         # Init neural network
-        sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False)[0].state
+        sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False).state
         qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
 
         if checkPointFile is None:

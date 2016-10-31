@@ -672,6 +672,8 @@ def getSuccessor(agents, display, state, action):
             newState = newState.generateSuccessor(ghostIndex, agents[ghostIndex].getAction(newState))
             display.update(newState.data)
     finally:
+        from pacman import GameState
+        GameState.explored = set()
         return newState
 
 class Stats:

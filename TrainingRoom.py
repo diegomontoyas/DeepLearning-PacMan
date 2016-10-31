@@ -73,7 +73,7 @@ class TrainingRoom:
         # gamesInfo = [self.makeGame(displayActive=False) for _ in range(2)]
         # currentStates = [g[0].state for g in gamesInfo]
 
-        game, agents, display, rules = self.makeGame(displayActive=False)
+        game = self.makeGame(displayActive=False)
         currentState = game.state
 
         episodes = 0
@@ -88,7 +88,7 @@ class TrainingRoom:
 
             # Update replay memory
             action = self.qFuncManager.getAction(currentState, epsilon=self.epsilon)
-            newState = util.getSuccessor(agents, display, currentState, action)
+            newState = util.getSuccessor(game.agents, game.display, currentState, action)
             reward = newState.getScore() - currentState.getScore()
             currentState = newState
             self.replayMemory.append((currentState, action, reward, newState))
@@ -99,7 +99,7 @@ class TrainingRoom:
                 self.replayMemory.pop(0)
 
             if newState.isWin() or newState.isLose():
-                game, agents, display, rules = self.makeGame(displayActive=False)
+                game = self.makeGame(displayActive=False)
                 currentState = game.state
 
                 wins += 1 if newState.isWin() else 0
@@ -109,7 +109,7 @@ class TrainingRoom:
             if len(self.replayMemory) < self.minExperience:
                 continue
 
-            # Take and converts a batch from replay memory
+            # Take and convert a batch from replay memory
             batch = self.sampleReplayBatch()
             loss, accuracy = self.qFuncManager.update(batch)
             trainingLossSum += loss
@@ -208,7 +208,7 @@ class TrainingRoom:
 
         game = rules.newGame(theLayout, agents[0], agents[1:], display)
 
-        return game, agents, display, rules
+        return game
 
 if __name__ == '__main__':
 
