@@ -56,7 +56,7 @@ class TrainingRoom:
         startTime = time.time()
         print("Beginning " + str(self.trainingEpisodes) + " training episodes")
 
-        self.stats = util.Stats(isOffline=self.replayFile is not None,
+        self.stats = util.Stats(replayFile=self.replayFile,
                                 discount=self.discount,
                                 trainingEpisodes=self.trainingEpisodes,
                                 minExperiences=self.minExperience,
@@ -232,4 +232,4 @@ if __name__ == '__main__':
                                 useExperienceReplay=True)
 
     trainingRoom.beginTraining(qFunctionManagers.NNQFunctionManager(trainingRoom))
-    checkPointFile = "./training files/training stats/1477957563.chkpt"
+    #checkPointFile = "./training files/training stats/1477957563.chkpt"
