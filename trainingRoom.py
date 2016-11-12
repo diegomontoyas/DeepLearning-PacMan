@@ -4,7 +4,7 @@ import deepLearningModels
 import ghostAgents
 import layout
 import pacmanAgents
-import QFunctionManagers
+import qFunctionManagers
 from featureExtractors import *
 from game import *
 from pacman import ClassicGameRules
@@ -31,6 +31,7 @@ class TrainingRoom:
         self.minExperience = minExperience
         self.learningRate = learningRate
         self.useExperienceReplay = useExperienceReplay
+        self.replayFile = replayFile
 
         print("Loading replay data...")
         self.replayMemory = shelve.open(replayFile).values() if replayFile is not None else []
@@ -55,7 +56,7 @@ class TrainingRoom:
         startTime = time.time()
         print("Beginning " + str(self.trainingEpisodes) + " training episodes")
 
-        self.stats = util.Stats(isOffline=True,
+        self.stats = util.Stats(isOffline=self.replayFile is not None,
                                 discount=self.discount,
                                 trainingEpisodes=self.trainingEpisodes,
                                 minExperiences=self.minExperience,
@@ -65,6 +66,7 @@ class TrainingRoom:
                                 finalEpsilon=self.finalEpsilon,
                                 batchSize=self.batchSize,
                                 epsilonSteps=self.epsilonSteps,
+                                useExperienceReplay=self.useExperienceReplay,
                                 notes=self.qFuncManager.getStatsNotes())
 
         print("Collecting minimum experience before training...")
@@ -91,7 +93,12 @@ class TrainingRoom:
             newState = util.getSuccessor(game.agents, game.display, currentState, action)
             reward = newState.getScore() - currentState.getScore()
             currentState = newState
+
             self.replayMemory.append((currentState, action, reward, newState))
+
+            if abs(reward)>1:
+                for _ in range(4 if abs(reward)<=20 else 10):
+                    self.replayMemory.append((currentState, action, reward, newState))
 
             rewardSum += reward
 
@@ -175,13 +182,13 @@ class TrainingRoom:
         :return: The score achieved in the game after winning or loosing.
         """
 
-        game, agents, display, rules = self.makeGame(displayActive=displayActive)
+        game = self.makeGame(displayActive=displayActive)
         currentState = game.state
-        display.initialize(currentState.data)
+        game.display.initialize(currentState.data)
 
         while not (currentState.isWin() or currentState.isLose()):
             action = self.qFuncManager.getAction(currentState, epsilon=0)
-            currentState = util.getSuccessor(agents, display, currentState, action)
+            currentState = util.getSuccessor(game.agents, game.display, currentState, action)
 
         return currentState.getScore()
 
@@ -212,8 +219,8 @@ class TrainingRoom:
 
 if __name__ == '__main__':
 
-    trainingRoom = TrainingRoom(layoutName="smallClassic",
-                                trainingEpisodes=40000,
+    trainingRoom = TrainingRoom(layoutName="mediumGrid",
+                                trainingEpisodes=10000,
                                 replayFile=None,#"./training files/replayMem_mediumClassic.txt",
                                 batchSize=600,
                                 discount=0.95,
@@ -222,6 +229,7 @@ if __name__ == '__main__':
                                 featuresExtractor=DistancesExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05,
-                                useExperienceReplay=False)
+                                useExperienceReplay=True)
 
-    trainingRoom.beginTraining(QFunctionManagers.NNQFunctionManager(trainingRoom))
+    trainingRoom.beginTraining(qFunctionManagers.NNQFunctionManager(trainingRoom))
+    checkPointFile = "./training files/training stats/1477957563.chkpt"

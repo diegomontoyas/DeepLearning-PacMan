@@ -15,7 +15,7 @@ from keras.layers import Dense
 from keras.models import Sequential
 import keras
 
-from ExperienceReplayHelper import ExperienceReplayHelper
+from experienceReplayHelper import ExperienceReplayHelper
 from game import *
 from learningAgents import ReinforcementAgent
 import numpy as np

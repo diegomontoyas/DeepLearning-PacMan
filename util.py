@@ -678,7 +678,7 @@ def getSuccessor(agents, display, state, action):
 
 class Stats:
 
-    def __init__(self, isOffline, discount, trainingEpisodes, minExperiences, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, notes):
+    def __init__(self, isOffline, discount, trainingEpisodes, minExperiences, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, useExperienceReplay, notes):
 
         import calendar
         self.fileName = "./training files/training stats/" + str(calendar.timegm(time.gmtime()))
@@ -697,6 +697,7 @@ class Stats:
                               + " BatchSize: " + str(batchSize)
                               + " EpsilonSteps: " + str(epsilonSteps)
                               + " Notes -> " + str(notes)
+                              + " ExperienceReplay: " + str(useExperienceReplay)
                               + "\n")
 
     def record(self, args):

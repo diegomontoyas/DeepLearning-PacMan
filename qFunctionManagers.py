@@ -47,10 +47,12 @@ class NNQFunctionManager(QFunctionManager):
         qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
 
         if checkPointFile is None:
-            self.model = deepLearningModels.TwoHiddenLayersLargeTanhLinearNN(len(qState))
+            self.model = deepLearningModels.TwoHiddenLayersReLULinearNN(len(qState))
         else:
             import keras
             self.model = keras.models.load_model(checkPointFile)
+            self.model.activation = None
+            self.model.learningRate = None
 
     def update(self, transitionsBatch):
 
@@ -113,8 +115,8 @@ class NNQFunctionManager(QFunctionManager):
     def getStatsNotes(self):
 
         return " Model: " + type(self.model).__name__ \
-            + " ActivationFunction: " + str(self.model.activation) \
-            + " NNLearningRate: " + str(self.model.learningRate)
+            + " ActivationFunction: " + str(self.model.activation or "") \
+            + " NNLearningRate: " + str(self.model.learningRate or "")
 
     def saveCheckpoint(self, file):
         self.model.model.save(file)

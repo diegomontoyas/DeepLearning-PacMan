@@ -140,6 +140,6 @@ class ExperienceReplayHelper:
         print("Done")
 
 if __name__ == '__main__':
-    file = "./training files/replayMem_mediumClassic.txt"
-    ExperienceReplayHelper(file).buildRandomExperience(layoutName="mediumClassic", displayActive=False)
+    file = "./training files/replayMem_mediumGrid.txt"
+    ExperienceReplayHelper(file).buildExperience(layoutName="mediumGrid", displayActive=False)
     #ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallGrid", displayActive=False)
