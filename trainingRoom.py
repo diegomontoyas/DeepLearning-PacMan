@@ -1,11 +1,11 @@
 import shelve
 
-import deepLearningModels
 import ghostAgents
 import layout
 import pacmanAgents
 import qFunctionManagers
-from featureExtractors import *
+import featureExtractors
+import util
 from game import *
 from pacman import ClassicGameRules
 
@@ -26,7 +26,7 @@ class TrainingRoom:
         self.memoryLimit = memoryLimit
         self.initialEpsilon = initialEpsilon
         self.finalEpsilon = finalEpsilon
-        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else min(trainingEpisodes * 0.2, 100000)
+        self.epsilonSteps = epsilonSteps if epsilonSteps is not None else min(trainingEpisodes * 0.6, 100000)
         self.epsilon = initialEpsilon
         self.minExperience = minExperience
         self.learningRate = learningRate
@@ -53,6 +53,14 @@ class TrainingRoom:
         self._train()
 
     def _train(self):
+
+        if isinstance(self.qFuncManager, qFunctionManagers.NNQFunctionManager):
+            self.replayMemory = [(self.featuresExtractor.getFeatures(state=s[0], action=s[1]),
+                                s[1], s[2],
+                                self.featuresExtractor.getFeatures(state=s[3], action=None),
+                                s[3].isWin() or s[3].isLose(),
+                                s[3].getLegalActions()) for s in self.replayMemory]
+
         startTime = time.time()
         print("Beginning " + str(self.trainingEpisodes) + " training episodes")
 
@@ -81,10 +89,13 @@ class TrainingRoom:
         episodes = 0
         trainingLossSum = 0
         accuracySum = 0
-        rewardSum = 0
-        wins = 0
-        games = 0
-        deaths = 0
+
+        totalWins = 0
+        totalDeaths = 0
+
+        lastEpisodesRewardSum = 0
+        lastEpisodesDeaths = 0
+        lastEpisodesWins = 0
 
         while episodes < self.trainingEpisodes:
 
@@ -92,15 +103,24 @@ class TrainingRoom:
             action = self.qFuncManager.getAction(currentState, epsilon=self.epsilon)
             newState = util.getSuccessor(game.agents, game.display, currentState, action)
             reward = newState.getScore() - currentState.getScore()
-            currentState = newState
 
-            self.replayMemory.append((currentState, action, reward, newState))
+            if isinstance(self.qFuncManager, qFunctionManagers.NNQFunctionManager):
+                qState = self.featuresExtractor.getFeatures(state=currentState, action=None)
+                newQState = self.featuresExtractor.getFeatures(state=newState, action=None)
+                experience = (qState, action, reward, newQState, newState.isWin() or newState.isLose(), newState.getLegalActions())
+
+            else:
+                experience = (currentState, action, reward, newState)
+
+            self.replayMemory.append(experience)
 
             if abs(reward)>1:
                 for _ in range(4 if abs(reward)<=20 else 10):
-                    self.replayMemory.append((currentState, action, reward, newState))
+                    self.replayMemory.append(experience)
 
-            rewardSum += reward
+            currentState = newState
+
+            lastEpisodesRewardSum += reward
 
             if len(self.replayMemory) > self.memoryLimit:
                 self.replayMemory.pop(0)
@@ -109,9 +129,11 @@ class TrainingRoom:
                 game = self.makeGame(displayActive=False)
                 currentState = game.state
 
-                wins += 1 if newState.isWin() else 0
-                games += 1
-                deaths += 1 if newState.isLose() else 0
+                if newState.isWin():
+                    totalWins += 1
+                else:
+                    totalDeaths += 1
+                    lastEpisodesDeaths += 1
 
             if len(self.replayMemory) < self.minExperience:
                 continue
@@ -124,7 +146,7 @@ class TrainingRoom:
 
             self.epsilon = max(self.finalEpsilon, 1.00 - float(episodes) / float(self.epsilonSteps))
 
-            if episodes % 20 == 0:
+            if episodes % 100 == 0 and episodes != 0:
 
                 averageLoss = trainingLossSum/20.0
                 averageAccuracy = accuracySum/20.0
@@ -133,25 +155,29 @@ class TrainingRoom:
                 print("Episode: " + str(episodes))
                 print("Average training loss: " + str(averageLoss))
                 print("Average accuracy: " + str(averageAccuracy))
-                print("Total reward for last episodes: " + str(rewardSum))
+                print("Total reward for last episodes: " + str(lastEpisodesRewardSum))
                 print("Epsilon: " + str(self.epsilon))
-                print("Total wins: " + str(wins))
-                print("Number of deaths: " + str(deaths))
+                print("Total wins: " + str(totalWins))
+                print("Total deaths: " + str(totalDeaths))
+                print("Deaths during last episodes: " + str(lastEpisodesDeaths))
+                print("Wins during last episodes: " + str(lastEpisodesWins))
 
-                self.stats.record([episodes, averageLoss, averageAccuracy, rewardSum, self.epsilon, wins, deaths])
+                self.stats.record([episodes, averageLoss, averageAccuracy, lastEpisodesRewardSum, self.epsilon, totalWins, totalDeaths, lastEpisodesDeaths, lastEpisodesWins])
+
                 trainingLossSum = 0
-                rewardSum = 0
                 accuracySum = 0
-                deaths = 0
+
+                lastEpisodesRewardSum = 0
+                lastEpisodesDeaths = 0
+                lastEpisodesWins = 0
 
                 try:
                     self.qFuncManager.saveCheckpoint(self.stats.fileName + ".chkpt")
                 except:
                     pass
 
-            if episodes % 100 == 0:
-                pass
-                #self._queue.put(lambda: self.playOnce(displayActive=True))
+            # if episodes % 100 == 0:
+            #     self._queue.put(lambda: self.playOnce(displayActive=True))
 
             episodes += 1
 
@@ -220,13 +246,13 @@ class TrainingRoom:
 if __name__ == '__main__':
 
     trainingRoom = TrainingRoom(layoutName="mediumGrid",
-                                trainingEpisodes=10000,
-                                replayFile=None,#"./training files/replayMem_mediumClassic.txt",
+                                trainingEpisodes=60000,
+                                replayFile="./training files/replayMem_mediumGrid.txt",
                                 batchSize=600,
                                 discount=0.95,
                                 minExperience=600,
                                 learningRate=0.2,
-                                featuresExtractor=DistancesExtractor(),
+                                featuresExtractor=featureExtractors.CompletePositionsExtractor(),
                                 initialEpsilon=1,
                                 finalEpsilon=0.05,
                                 useExperienceReplay=True)

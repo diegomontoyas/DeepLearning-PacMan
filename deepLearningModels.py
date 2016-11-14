@@ -90,8 +90,8 @@ class OneHiddenLayerTanhLinearNN:
 
         self.activation = "Tanh + linear"
         self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="tanh", init='uniform'))
-        self.model.add(layers.Dense(outputDimensions, activation="linear", init='uniform'))
+        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="tanh", init='lecun_uniform'))
+        self.model.add(layers.Dense(outputDimensions, activation="linear", init='lecun_uniform'))
 
         optimizer = keras.optimizers.SGD()
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])

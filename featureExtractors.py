@@ -153,26 +153,41 @@ class PositionsFoodWallsExtractor(FeatureExtractor):
 
         return np.concatenate((pacmanPosition, ghostPositions, legalActions, walls, food)).astype(dtype=float)/20
 
+class CompletePositionsExtractor(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+
+        maxBoardSize = max(getBoardSize(state))
+
+        pacmanPosition = np.array(state.getPacmanPosition()).flatten()/float(maxBoardSize)
+        ghostPositions = np.array(state.getGhostPositions()).flatten()/float(maxBoardSize)
+
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
+        closestFoodDistance = getClosestFoodDistance(state)
+        areGhostsScared = getScaredGhosts(state)
+        ghostDirections = getGhostDirections(state)
+        capsules = getCapsulesAroundPacman(state)
+
+        return np.concatenate((pacmanPosition, ghostPositions, closestFoodDistance, areGhostsScared, capsules, legalActions, food, ghostDirections)).astype(dtype=float)
+
 class DistancesExtractor(FeatureExtractor):
 
     def getFeatures(self, state, action):
 
-        boardSize = np.array(getBoardSize(state))
+        maxBoardSize = max(getBoardSize(state))
 
         x, y = state.getPacmanPosition()
+        distances = np.array([[x-gx, y-gy] for gx, gy in state.getGhostPositions()]).flatten()/float(maxBoardSize)
 
         legalActions = getLegalActions(state)
         food = getFoodAroundPacman(state)
-
-        distances = np.array([[x-gx, y-gy] for gx, gy in state.getGhostPositions()])
-        inverseDistances = np.array([boardSize * np.sign(dis) - dis for dis in distances]).flatten() / max(boardSize)
-
-        areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
-
-        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])/4.0
+        closestFoodDistance = getClosestFoodDistance(state)
+        areGhostsScared = getScaredGhosts(state)
+        ghostDirections = getGhostDirections(state)
         capsules = getCapsulesAroundPacman(state)
 
-        qState = np.concatenate((inverseDistances, areGhostsScared, capsules, legalActions, food, ghostDirections)).astype(dtype=float)
+        qState = np.concatenate((distances, closestFoodDistance, areGhostsScared, capsules, legalActions, food, ghostDirections)).astype(dtype=float)
         return qState
 
 class ShortSightedBinaryExtractor(FeatureExtractor):
@@ -204,13 +219,38 @@ class ShortSightedBinaryClosestFoodExtractor(FeatureExtractor):
         ghostsNearby = getGhostsAroundPacman(state)
         areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
 
+        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])/4.0
+        capsules = getCapsulesAroundPacman(state)
+
+        closestFoodDistance = np.array([getClosestFoodDistance(state)])/float(maxBoardSize)
+        remainingFood = np.array([state.getNumFood() + len(state.getCapsules())])/10.0
+
+        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections, closestFoodDistance, remainingFood)).astype(dtype=float)
+        return qState
+
+class ShortSightedBinaryClosestFoodExtractorNoNormalization(FeatureExtractor):
+
+    def getFeatures(self, state, action):
+
+        boardSize = getBoardSize(state)
+        maxBoardSize = max(boardSize[0], boardSize[1])
+
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
+
+        ghostsNearby = getGhostsAroundPacman(state)
+        areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
+
         ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])
         capsules = getCapsulesAroundPacman(state)
 
-        closestFoodDistance = closestFood((state.getPacmanPosition()), state.getFood(), state.getWalls())[0] or 0
-        closestFoodDistance = np.array([closestFoodDistance/float(maxBoardSize)])
+        closestFoodTuple = closestFood((state.getPacmanPosition()), state.getFood(), state.getWalls())
+        closestFoodInvertedDistance = maxBoardSize - (closestFoodTuple[0] if closestFoodTuple else maxBoardSize)
+        closestFoodInvertedDistance = np.array([closestFoodInvertedDistance])
 
-        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections/4.0, closestFoodDistance)).astype(dtype=float)
+        remainingFood = 10-(state.getNumFood() + len(state.getCapsules()))
+
+        qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections, closestFoodInvertedDistance, remainingFood)).astype(dtype=float)
         return qState
 
 class PositionsDirectionsExtractor(FeatureExtractor):
@@ -387,6 +427,18 @@ def getBoardSize(state):
     layout = state.data.layout
     return (layout.width, layout.height)
 
+def getClosestFoodDistance(state):
+    maxBoardSize = max(getBoardSize(state))
+    closestFoodTuple = closestFood((state.getPacmanPosition()), state.getFood(), state.getWalls())
+    closestFoodDistance = closestFoodTuple[0] if closestFoodTuple else maxBoardSize
+    return np.array([closestFoodDistance])/float(maxBoardSize)
+
+def getGhostDirections(state):
+    return np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()]) / 4.0
+
+def getScaredGhosts(state):
+    return [s.scaredTimer > 0 for s in state.getGhostStates()]
+
 def getLegalActions(state):
     legalActions = state.getLegalActions()
     if Directions.STOP in legalActions: legalActions.remove(Directions.STOP)
@@ -408,24 +460,24 @@ def getGhostsAroundPacman(state):
 
     ghostPositions = state.getGhostPositions()
     x, y = state.getPacmanPosition()
-    ghostsNearby = [0] * 4
+    ghostsNearby = [0] * 8
 
-    thresh = 2.0
     for ghostX, ghostY in ghostPositions:
 
         dx = ghostX-x
         dy = ghostY-y
 
-        if abs(dx) <= thresh and abs(dy) <= 1:
-            if dx < 0:
-                ghostsNearby[0] = 1
-            else:
-                ghostsNearby[1] = 1
+        if abs(dx) <= 1 and abs(dy) <= 1:
+            if dx == 0:
+                ghostsNearby[0 if dy > 0 else 1] = 1
 
-        if abs(dy) <= thresh and abs(dx) <= 1:
-            if dy < 0:
-                ghostsNearby[2] = 1
+            elif dy == 0:
+                ghostsNearby[2 if dx < 0 else 3] = 1
+
+            elif dy > 0:
+                ghostsNearby[4 if dx < 0 else 5] = 1
+
             else:
-                ghostsNearby[3] = 1
+                ghostsNearby[6 if dx < 0 else 7] = 1
 
     return ghostsNearby

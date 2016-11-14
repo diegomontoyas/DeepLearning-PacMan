@@ -691,7 +691,7 @@ class Stats:
                               + " TrainingEpisodes: " + str(trainingEpisodes)
                               + " MinExperiences: " + str(minExperiences)
                               + " LearningRate: " + str(learningRate)
-                              + " FeaturesExtractor: " + type(featuresExtractor).__name__
+                              + " FeaturesExtractor: " + featuresExtractor.__class__.__name__
                               + " InitialEpsilon: " + str(initialEpsilon)
                               + " FinalEpsilon: " + str(finalEpsilon)
                               + " BatchSize: " + str(batchSize)

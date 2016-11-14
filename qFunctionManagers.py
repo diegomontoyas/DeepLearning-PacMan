@@ -47,7 +47,7 @@ class NNQFunctionManager(QFunctionManager):
         qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
 
         if checkPointFile is None:
-            self.model = deepLearningModels.TwoHiddenLayersReLULinearNN(len(qState))
+            self.model = deepLearningModels.OneHiddenLayerTanhLinearNN(len(qState))
         else:
             import keras
             self.model = keras.models.load_model(checkPointFile)
@@ -60,24 +60,20 @@ class NNQFunctionManager(QFunctionManager):
         trainingBatchTargetQValues = []
 
         # Convert raw states to our q-states and calculate update policy for each transition in batch
-        for aState, anAction, aReward, aNextState in transitionsBatch:
+        for aQState, anAction, aReward, aNextQState, isTerminal, nextStateLegalActions in transitionsBatch:
 
             # aReward = util.rescale(aReward, -510, 1000, -1, 1)
 
-            aQState = self.trainingRoom.featuresExtractor.getFeatures(state=aState, action=anAction)
-            aNextQState = self.trainingRoom.featuresExtractor.getFeatures(state=aNextState, action=None)
-
             actionsQValues = self.model.model.predict(np.array([aQState]))[0]
-
             targetQValues = actionsQValues.copy()
 
             # Update rule
-            if aNextState.isWin() or aNextState.isLose():
+            if isTerminal:
                 updatedQValueForAction = aReward
 
             else:
                 nextActionsQValues = self.model.model.predict(np.array([aNextQState]))[0]
-                nextStateLegalActionsIndices = [Directions.getIndex(action) for action in aNextState.getLegalActions()]
+                nextStateLegalActionsIndices = [Directions.getIndex(action) for action in nextStateLegalActions]
 
                 try: nextStateLegalActionsIndices.remove(4)
                 except: pass
@@ -114,7 +110,7 @@ class NNQFunctionManager(QFunctionManager):
 
     def getStatsNotes(self):
 
-        return " Model: " + type(self.model).__name__ \
+        return " Model: " + self.model.__class__.__name__ \
             + " ActivationFunction: " + str(self.model.activation or "") \
             + " NNLearningRate: " + str(self.model.learningRate or "")
 
