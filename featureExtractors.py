@@ -211,18 +211,14 @@ class ShortSightedBinaryClosestFoodExtractor(FeatureExtractor):
     def getFeatures(self, state, action):
 
         boardSize = getBoardSize(state)
-        maxBoardSize = max(boardSize[0], boardSize[1])
-
-        legalActions = getLegalActions(state)
-        food = getFoodAroundPacman(state)
 
         ghostsNearby = getGhostsAroundPacman(state)
-        areGhostsScared = [s.scaredTimer > 0 for s in state.getGhostStates()]
-
-        ghostDirections = np.array([Directions.getIndex(s.getDirection()) for s in state.getGhostStates()])/4.0
+        legalActions = getLegalActions(state)
+        food = getFoodAroundPacman(state)
+        closestFoodDistance = getClosestFoodDistance(state)
+        areGhostsScared = getScaredGhosts(state)
+        ghostDirections = getGhostDirections(state)
         capsules = getCapsulesAroundPacman(state)
-
-        closestFoodDistance = np.array([getClosestFoodDistance(state)])/float(maxBoardSize)
         remainingFood = np.array([state.getNumFood() + len(state.getCapsules())])/10.0
 
         qState = np.concatenate((ghostsNearby, areGhostsScared, capsules, legalActions, food, ghostDirections, closestFoodDistance, remainingFood)).astype(dtype=float)

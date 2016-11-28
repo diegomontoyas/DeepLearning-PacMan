@@ -17,6 +17,7 @@ from game import Agent
 import game
 import util
 import random
+import numpy as np
 
 class CarefulGreedyAgent(Agent):
 
@@ -177,7 +178,25 @@ def scoreEvaluation(state):
 
 class TrainedAgent():
     def __init__(self):
-        pass
+        import keras
+        import featureExtractors
 
-    def getAction(self, state, epsilon):
-        return None
+        self.featuresExtractor = featureExtractors.DistancesExtractor()
+
+        checkPointFile = "./training files/training stats/With Replay File/Medium Grid/Distances/1479091048.chkpt"
+        self.model = keras.models.load_model(checkPointFile)
+
+    def getAction(self, rawState):
+
+        legalActions = rawState.getLegalActions()
+        legalActions.remove(Directions.STOP)
+
+        qState = self.featuresExtractor.getFeatures(rawState, None)
+
+        qValues = list(enumerate(self.model.model.predict(np.array([qState]))[0]))
+        qValues = sorted(qValues, key=lambda x: x[1], reverse=True)
+
+        for index, qValue in qValues:
+            action = Directions.fromIndex(index)
+            if action in legalActions:
+                return action
