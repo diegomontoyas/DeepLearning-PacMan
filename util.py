@@ -678,7 +678,9 @@ def getSuccessor(agents, display, state, action):
 
 class Stats:
 
-    def __init__(self, replayFile, discount, trainingEpisodes, minExperiences, learningRate, featuresExtractor, initialEpsilon, finalEpsilon, batchSize, epsilonSteps, useExperienceReplay, notes):
+    def __init__(self, replayFile, discount, trainingEpisodes, minExperiences,
+                featuresExtractor, initialEpsilon, finalEpsilon,
+                 batchSize, epsilonSteps, useExperienceReplay, notes, learningRate=""):
 
         import calendar
         self.fileName = "./training files/training stats/" + str(calendar.timegm(time.gmtime()))
@@ -706,3 +708,72 @@ class Stats:
     def close(self, averageScore20Games, learningTime):
         self.file.write(("Average score (20 games): " + str(averageScore20Games) + "LearningTime " + str(learningTime)))
         self.file.close()
+
+def calculateAvgScore(games, checkpointFile, layoutName, extractor):
+    """
+    Calculate the average score after `games` games and print it to the console
+    :param games: The number of games to run
+    :param checkpointFile: The checkpoint file of the trained NN.
+    :param layoutName: The name of the layout to use.
+    :param extractor: An instance of the features extractor to use.
+    """
+
+    import pacmanAgents
+    import layout
+    from pacman import ClassicGameRules
+    import ghostAgents
+
+    trainedAgent = pacmanAgents.TrainedAgent(checkpointFile, extractor)
+
+    def makeGame(displayActive):
+        """
+        Make a game
+        :param displayActive: True or False to indicate if the display should be active
+        :return: game, agents, display, rules
+        """
+
+        if not displayActive:
+            import textDisplay
+            display = textDisplay.NullGraphics()
+        else:
+            import graphicsDisplay
+            display = graphicsDisplay.PacmanGraphics(frameTime=0.01)
+
+        theLayout = layout.getLayout(layoutName)
+        if theLayout == None: raise Exception("The layout " + layoutName + " cannot be found")
+
+        rules = ClassicGameRules()
+        agents = [trainedAgent] \
+                 + [ghostAgents.DirectionalGhost(i + 1) for i in range(theLayout.getNumGhosts())]
+
+        game = rules.newGame(theLayout, agents[0], agents[1:], display)
+
+        return game
+
+    def playOnce():
+        game = makeGame(displayActive=True)
+        currentState = game.state
+        game.display.initialize(currentState.data)
+
+        while not (currentState.isWin() or currentState.isLose()):
+            action = trainedAgent.getAction(currentState)
+            currentState = getSuccessor(game.agents, game.display, currentState, action)
+
+        return currentState.getScore(), currentState.isWin()
+
+    n = 0
+    scoreSum = 0
+    winsSum = 0
+
+    while n < games:
+        score, won = playOnce()
+        scoreSum += score
+        winsSum += 1 if won else 0
+        n += 1
+
+        if n % 10 == 0:
+            print(str(n) + "...")
+
+    print(checkpointFile)
+    print("Average score: " + str(scoreSum / float(games)))
+    print("Percentage won: " + str(winsSum / float(games)))

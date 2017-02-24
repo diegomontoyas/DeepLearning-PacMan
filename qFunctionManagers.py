@@ -1,5 +1,4 @@
 import deepLearningModels
-import pacmanAgents
 import util
 from game import Directions, random
 import numpy as np
@@ -9,11 +8,8 @@ class QFunctionManager:
     An abstract class which Q function managers should inherit from
     """
 
-    def __init__(self, trainingRoom):
-        """
-        :param trainingRoom: The room (TrainingRoom) in which we are training in
-        """
-        self.trainingRoom = trainingRoom
+    def __init__(self):
+        self.trainingRoom = None
 
     def update(self, transitionsBatch):
         """
@@ -25,7 +21,7 @@ class QFunctionManager:
     def getAction(self, rawState, epsilon):
         """
         Choose the best action to take
-        :param rawState: The state
+        :param rawState: The state as provided by the game
         :param epsilon: Epsilon value to use when taking the action
         :return: Action (Direction) to take
         """
@@ -39,15 +35,26 @@ class NNQFunctionManager(QFunctionManager):
     A manager that uses a Neural Network to approximate the Q-Function
     """
 
-    def __init__(self, trainingRoom, checkPointFile = None):
-        QFunctionManager.__init__(self, trainingRoom)
+    def __init__(self, trainingRoom, model=None, checkPointFile = None):
+        """
+        Initializes a Q-function manager that uses a neural network behind the scenes
+        :param trainingRoom: The training room in which we are going to train.
+        :param model: (optional) The model of a neural network to use. If None, a default one is created.
+        :param checkPointFile: (optional) The file from which to restore a previously persisted model.
+        """
+        QFunctionManager.__init__(self)
 
-        # Init neural network
-        sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False).state
-        qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
+        self.trainingRoom = trainingRoom
 
-        if checkPointFile is None:
+        if model is not None:
+            self.model = model
+
+        elif checkPointFile is None:
+            # Init neural network
+            sampleState = self.trainingRoom.makeGame(False).state
+            qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
             self.model = deepLearningModels.OneHiddenLayerTanhLinearNN(len(qState))
+
         else:
             import keras
             self.model = keras.models.load_model(checkPointFile)
@@ -55,6 +62,10 @@ class NNQFunctionManager(QFunctionManager):
             self.model.learningRate = None
 
     def update(self, transitionsBatch):
+        """
+        Update the Q-Values from the given batch of transitions
+        :param transitionsBatch: List of tuples (qState, action, nextQState, reward, isStateFinal, list of legal actions)
+        """
 
         trainingBatchQStates = []
         trainingBatchTargetQValues = []
@@ -90,7 +101,6 @@ class NNQFunctionManager(QFunctionManager):
         return self.model.model.train_on_batch(x=np.array(trainingBatchQStates), y=np.array(trainingBatchTargetQValues))
 
     def getAction(self, rawState, epsilon):
-
         legalActions = rawState.getLegalActions()
         legalActions.remove(Directions.STOP)
 
@@ -109,15 +119,26 @@ class NNQFunctionManager(QFunctionManager):
                     return action
 
     def getStatsNotes(self):
+        """
+        :return: Additional notes to add to the beginning of the stats file.
+        """
 
         return " Model: " + self.model.__class__.__name__ \
             + " ActivationFunction: " + str(self.model.activation or "") \
             + " NNLearningRate: " + str(self.model.learningRate or "")
 
     def saveCheckpoint(self, file):
+        """
+        Save the model to the provided file
+        :param file: Location
+        """
         self.model.model.save(file)
 
 class NonDeepQFunctionManager(QFunctionManager):
+    """
+    Abstract class from which non NN based managers should inherit.
+    """
+
     def getQValue(self, qState, action):
         raise Exception("Not implemented")
 
@@ -149,11 +170,13 @@ class NonDeepQFunctionManager(QFunctionManager):
 
 class ApproximateQFunctionManager(NonDeepQFunctionManager):
     """
-    A manager that uses hand updated weights to approximate the Q-Function
+    A manager that uses hand updated weights to approximate the Q-Function.
     """
 
-    def __init__(self, trainingRoom):
-        QFunctionManager.__init__(self, trainingRoom)
+    def __init__(self, learningRate):
+        QFunctionManager.__init__(self)
+
+        self.learningRate = learningRate
 
         sampleState = self.trainingRoom.replayMemory[0][0] if self.trainingRoom.replayMemory else self.trainingRoom.makeGame(False)[0].state
         qState = self.trainingRoom.featuresExtractor.getFeatures(sampleState, Directions.NORTH)
@@ -177,7 +200,7 @@ class ApproximateQFunctionManager(NonDeepQFunctionManager):
             maxNextActionQValue = self.getMaxQValue(aNextState)
 
             for i, value in enumerate(aQState):
-                self.weights[i] += self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aState, anAction)) * value
+                self.weights[i] += self.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aState, anAction)) * value
 
             return -1, -1
 
@@ -186,9 +209,10 @@ class TableBasedQFunctionManager(NonDeepQFunctionManager):
     A manager that uses a traditional table to store the Q-values
     """
 
-    def __init__(self, trainingRoom):
-        QFunctionManager.__init__(self, trainingRoom)
+    def __init__(self, learningRate):
+        QFunctionManager.__init__(self)
 
+        self.learningRate = learningRate
         self.qValues = {}
 
     def getQValue(self, qState, action):
@@ -204,6 +228,6 @@ class TableBasedQFunctionManager(NonDeepQFunctionManager):
             maxNextActionQValue = self.getMaxQValue(aNextState)
 
             self.qValues[(str(aQState), anAction)] = self.getQValue(aQState, anAction) \
-                + self.trainingRoom.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aQState, anAction))
+                + self.learningRate * (aReward + self.trainingRoom.discount * maxNextActionQValue - self.getQValue(aQState, anAction))
 
             return -1, -1

@@ -2,164 +2,142 @@ import keras
 from keras import models
 from keras import layers
 
-class OneNeuronNN:
+# Note: A lot code in this module was left un-modularized so changing certain parameters and testing with
+# different options was easier.
 
-    def __init__(self, inputDimensions):
-        outputDimensions = 4
+class Model:
+    def __init__(self, inputDimensions, learningRate):
+        pass
 
-        self.activation = "linear"
-        self.learningRate = 0.005
+class OneNeuronNN(Model):
+    """
+    A NN consisting of just one neuron
+    """
+
+    def __init__(self, inputDimensions, learningRate=0.005, activation="linear"):
+        """
+        :param inputDimensions: The number of input dimensions
+        :param learningRate: The learning rate
+        :param activation: Activation function to use
+        """
+        Model.__init__(self, inputDimensions, learningRate)
+
+        self.activation = activation
+        self.learningRate = learningRate
 
         self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=outputDimensions, input_dim=inputDimensions, activation=self.activation, init='uniform'))
+        self.model.add(layers.Dense(output_dim=4, input_dim=inputDimensions,
+                                    activation=self.activation, init='uniform'))
 
         optimizer = keras.optimizers.SGD(lr=self.learningRate)
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
 
-class OneHiddenLayerTanhNN:
+class OneHiddenLayerReLULinearNN(Model):
+    """
+    A NN consisting of one hidden layer which uses ReLU as its activation function and linear of the output layer
+    """
 
-    def __init__(self, inputDimensions):
+    def __init__(self, inputDimensions, learningRate = 0.01):
+        """
+        :param inputDimensions: The number of input dimensions
+        :param learningRate: The learning rate
+        """
+        Model.__init__(self, inputDimensions, learningRate)
+
         outputDimensions = 4
         hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
 
-        self.activation = "tanh"
-        self.learningRate = 0.01
-
-        self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation=self.activation, init='uniform'))
-        self.model.add(layers.Dense(outputDimensions, activation=self.activation, init='uniform'))
-
-        optimizer = keras.optimizers.SGD(lr=self.learningRate)
-        self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
-
-class OneHiddenLayerRMSPropNN:
-
-    def __init__(self, inputDimensions):
-        outputDimensions = 4
-        hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
-
-        self.activation = "tanh"
-        self.learningRate = 0.01
-
-        self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation=self.activation, init='uniform'))
-        self.model.add(layers.Dense(outputDimensions, activation=self.activation, init='uniform'))
-
-        optimizer = keras.optimizers.RMSprop()
-        self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
-
-class OneHiddenLayerReLULinearNN:
-
-    def __init__(self, inputDimensions):
-        outputDimensions = 4
-        hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
-
-        self.learningRate = 0.01
+        self.learningRate = learningRate
 
         self.activation = "ReLU + linear"
         self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="relu", init='uniform'))
+        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions,
+                                    activation="relu", init='uniform'))
+
         self.model.add(layers.Dense(outputDimensions, activation="linear", init='uniform'))
 
         optimizer = keras.optimizers.SGD()
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
 
-class OneHiddenLayerReLULinearAdamNN:
+class OneHiddenLayerReLULinearAdamNN(Model):
+    """
+    A NN consisting of one hidden layer which uses ReLU as its activation function, linear for the output layer,
+    and Adam as the optimizer
+    """
 
-    def __init__(self, inputDimensions):
+    def __init__(self, inputDimensions, learningRate = 0.01):
+        """
+        :param inputDimensions: The number of input dimensions
+        :param learningRate: The learning rate
+        """
+        Model.__init__(self, inputDimensions, learningRate)
+
         outputDimensions = 4
         hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
 
-        self.learningRate = 0.01
+        self.learningRate = learningRate
 
         self.activation = "ReLU + linear"
         self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="relu", init='uniform'))
+        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions,
+                                    activation="relu", init='uniform'))
+
         self.model.add(layers.Dense(outputDimensions, activation="linear", init='uniform'))
 
         optimizer = keras.optimizers.Adam(lr=0.00001)
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
 
-class OneHiddenLayerTanhLinearNN:
+class OneHiddenLayerTanhLinearNN(Model):
+    """
+    A NN consisting of one hidden layer which uses tanh as its activation function and linear for the output layer
+    """
 
-    def __init__(self, inputDimensions):
+    def __init__(self, inputDimensions, learningRate=0.01):
+        """
+        :param inputDimensions: The number of input dimensions
+        :param learningRate: The learning rate
+        """
+        Model.__init__(self, inputDimensions, learningRate)
+
         outputDimensions = 4
         hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
 
-        self.learningRate = 0.01
+        self.learningRate = learningRate
 
         self.activation = "Tanh + linear"
         self.model = models.Sequential()
-        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions, activation="tanh", init='lecun_uniform'))
+        self.model.add(layers.Dense(output_dim=hiddenLayerNeurons, input_dim=inputDimensions,
+                                    activation="tanh", init='lecun_uniform'))
+
         self.model.add(layers.Dense(outputDimensions, activation="linear", init='lecun_uniform'))
 
         optimizer = keras.optimizers.SGD()
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
 
-class TwoHiddenLayersTanhNN:
+class TwoHiddenLayersTanhLinearNN(Model):
+    """
+    A NN consisting of two hidden layers which use tanh as their activation function and linear for the output layer
+    """
 
-    def __init__(self, inputDimensions):
-        outputDimensions = 4
-        hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
+    def __init__(self, inputDimensions, learningRate = 0.01):
+        """
+        :param inputDimensions: The number of input dimensions
+        :param learningRate: The learning rate
+        """
+        Model.__init__(self, inputDimensions, learningRate)
 
-        self.activation = "tanh"
-        self.learningRate = 0.01
-
-        self.model = models.Sequential()
-        self.model.add(layers.Dense(hiddenLayerNeurons, input_dim=inputDimensions, activation=self.activation, init='uniform'))
-        self.model.add(layers.Dense(hiddenLayerNeurons/2, activation=self.activation, init='uniform'))
-        self.model.add(layers.Dense(outputDimensions, activation=self.activation, init='uniform'))
-
-        optimizer = keras.optimizers.SGD(lr=self.learningRate)
-        self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
-
-class TwoHiddenLayersTanhLinearNN:
-
-    def __init__(self, inputDimensions):
         outputDimensions = 4
         hiddenLayerNeurons = int((inputDimensions + outputDimensions) / 2)
 
         self.activation = "Tanh + linear"
-        self.learningRate = 0.01
+        self.learningRate = learningRate
 
         self.model = models.Sequential()
-        self.model.add(layers.Dense(hiddenLayerNeurons, input_dim=inputDimensions, activation="tanh", init='uniform'))
-        self.model.add(layers.Dense(int(hiddenLayerNeurons/2), activation="tanh", init='uniform'))
-        self.model.add(layers.Dense(outputDimensions, activation="linear", init='uniform'))
+        self.model.add(layers.Dense(hiddenLayerNeurons, input_dim=inputDimensions,
+                                    activation="tanh", init='lecun_uniform'))
 
-        optimizer = keras.optimizers.SGD(lr=self.learningRate)
-        self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
-
-class TwoHiddenLayersLargeTanhLinearNN:
-
-    def __init__(self, inputDimensions):
-        outputDimensions = 4
-        hiddenLayerNeurons = 20
-
-        self.activation = "Tanh + linear"
-        self.learningRate = 0.01
-
-        self.model = models.Sequential()
-        self.model.add(layers.Dense(hiddenLayerNeurons, input_dim=inputDimensions, activation="tanh", init='lecun_uniform'))
         self.model.add(layers.Dense(int(hiddenLayerNeurons/2), activation="tanh", init='lecun_uniform'))
         self.model.add(layers.Dense(outputDimensions, activation="linear", init='lecun_uniform'))
-
-        optimizer = keras.optimizers.SGD(lr=self.learningRate)
-        self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
-
-class TwoHiddenLayersReLULinearNN:
-
-    def __init__(self, inputDimensions):
-        outputDimensions = 4
-        hiddenLayerNeurons = 20
-
-        self.activation = "ReLU + linear"
-        self.learningRate = 0.01
-
-        self.model = models.Sequential()
-        self.model.add(layers.Dense(hiddenLayerNeurons, input_dim=inputDimensions, activation="relu", init='uniform'))
-        self.model.add(layers.Dense(8, activation="relu", init='uniform'))
-        self.model.add(layers.Dense(outputDimensions, activation="linear", init='uniform'))
 
         optimizer = keras.optimizers.SGD(lr=self.learningRate)
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])

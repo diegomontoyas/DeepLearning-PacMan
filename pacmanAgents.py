@@ -18,6 +18,8 @@ import game
 import util
 import random
 import numpy as np
+import featureExtractors
+
 
 class CarefulGreedyAgent(Agent):
 
@@ -28,7 +30,7 @@ class CarefulGreedyAgent(Agent):
     def getAction(self, state):
 
         import featureExtractors
-        qState = featureExtractors.ShortSightedBinaryExtractor().getFeatures(state, None)
+        #qState = featureExtractors.ShortSightedBinaryExtractor().getFeatures(state, None)
         return self._getAction(state)[0]
 
     def _getAction(self, state):
@@ -40,11 +42,15 @@ class CarefulGreedyAgent(Agent):
         ghostPositions = state.getGhostPositions()
         ghostStates = state.getGhostStates()
 
+        random.shuffle(legalActions)
+
         for action in legalActions:
             if action == Directions.STOP: continue
 
             nextPacmanState = state.generatePacmanSuccessor(action)
             nextPacmanPosition = nextPacmanState.getPacmanPosition()
+
+            if not nextPacmanState.isLose(): return action, dangerousActions
 
             for ghostNumber, ghostPosition in enumerate(ghostPositions):
                 yDiff = ghostPosition[1] - pacmanPosition[1]
@@ -54,27 +60,27 @@ class CarefulGreedyAgent(Agent):
                     # We would loose
                     dangerousActions[action] = True
                 else:
-                    nextYDiff = ghostPosition[1] - nextPacmanPosition[1]
-                    nextXDiff = ghostPosition[0] - nextPacmanPosition[0]
-
-                    ghostInSameColumn = ghostPosition[0] == nextPacmanPosition[0]
-                    ghostInSameRow = ghostPosition[1] == nextPacmanPosition[1]
-
-                    ghostAbove = ghostInSameColumn and yDiff > 0
-                    ghostBelow = ghostInSameColumn and yDiff < 0
-                    ghostRight = ghostInSameRow and xDiff > 0
-                    ghostLeft = ghostInSameRow and xDiff < 0
-
-                    # We would get closer to a ghost by going that way
-                    if abs(nextYDiff) < pacmanVisionRadius and abs(nextYDiff) < abs(yDiff):
-                        if (ghostAbove and Directions.NORTH in legalActions) \
-                                or (ghostBelow and Directions.SOUTH in legalActions):
-                            dangerousActions[action] = True
-
-                    if abs(nextXDiff) < pacmanVisionRadius and abs(nextXDiff) < abs(xDiff):
-                        if (ghostLeft and Directions.WEST in legalActions) \
-                                or (ghostRight and Directions.EAST in legalActions):
-                            dangerousActions[action] = True
+                    # nextYDiff = ghostPosition[1] - nextPacmanPosition[1]
+                    # nextXDiff = ghostPosition[0] - nextPacmanPosition[0]
+                    #
+                    # ghostInSameColumn = ghostPosition[0] == nextPacmanPosition[0]
+                    # ghostInSameRow = ghostPosition[1] == nextPacmanPosition[1]
+                    #
+                    # ghostAbove = ghostInSameColumn and yDiff > 0
+                    # ghostBelow = ghostInSameColumn and yDiff < 0
+                    # ghostRight = ghostInSameRow and xDiff > 0
+                    # ghostLeft = ghostInSameRow and xDiff < 0
+                    #
+                    # # We would get closer to a ghost by going that way
+                    # if abs(nextYDiff) < pacmanVisionRadius and abs(nextYDiff) < abs(yDiff):
+                    #     if (ghostAbove and Directions.NORTH in legalActions) \
+                    #             or (ghostBelow and Directions.SOUTH in legalActions):
+                    #         dangerousActions[action] = True
+                    #
+                    # if abs(nextXDiff) < pacmanVisionRadius and abs(nextXDiff) < abs(xDiff):
+                    #     if (ghostLeft and Directions.WEST in legalActions) \
+                    #             or (ghostRight and Directions.EAST in legalActions):
+                    #         dangerousActions[action] = True
 
                     ghostDirection = ghostStates[ghostNumber].getDirection()
 
@@ -85,15 +91,15 @@ class CarefulGreedyAgent(Agent):
                     #      ==================   ||             P = PacMan
                     #                         P^||
 
-                    if nextYDiff == 0:
-                        if (nextXDiff == -1 and ghostDirection == Directions.EAST) \
-                                or (nextXDiff == 1 and ghostDirection == Directions.WEST):
-                            dangerousActions[action] = True
-
-                    if nextXDiff == 0:
-                        if (nextYDiff == -1 and ghostDirection == Directions.NORTH) \
-                                or (nextYDiff == 1 and ghostDirection == Directions.SOUTH):
-                            dangerousActions[action] = True
+                    # if nextYDiff == 0:
+                    #     if (nextXDiff == -1 and ghostDirection == Directions.EAST) \
+                    #             or (nextXDiff == 1 and ghostDirection == Directions.WEST):
+                    #         dangerousActions[action] = True
+                    #
+                    # if nextXDiff == 0:
+                    #     if (nextYDiff == -1 and ghostDirection == Directions.NORTH) \
+                    #             or (nextYDiff == 1 and ghostDirection == Directions.SOUTH):
+                    #         dangerousActions[action] = True
 
         #print("Dangerous: " + str(list(dangerousActions.keys())))
         dangerousActionsList = list(dangerousActions.keys())
@@ -170,6 +176,9 @@ class RandomAgent(Agent):
         legalActions = state.getLegalActions()
         if Directions.STOP in legalActions: legalActions.remove(Directions.STOP)
 
+        import featureExtractors
+        tunnels = featureExtractors.getTunnelsAroundPacman(state)
+
         return random.choice(legalActions)
 
 def scoreEvaluation(state):
@@ -177,13 +186,13 @@ def scoreEvaluation(state):
 
 
 class TrainedAgent():
-    def __init__(self):
+    def __init__(self,
+                 checkPointFile = "./training files/training stats/With Replay File/Medium Grid/Distances/1479091048.chkpt",
+                 extractor = featureExtractors.DistancesExtractor()):
+
         import keras
-        import featureExtractors
 
-        self.featuresExtractor = featureExtractors.DistancesExtractor()
-
-        checkPointFile = "./training files/training stats/With Replay File/Medium Grid/Distances/1479091048.chkpt"
+        self.featuresExtractor = extractor
         self.model = keras.models.load_model(checkPointFile)
 
     def getAction(self, rawState):

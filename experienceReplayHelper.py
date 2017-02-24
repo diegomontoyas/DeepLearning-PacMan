@@ -141,5 +141,5 @@ class ExperienceReplayHelper:
 
 if __name__ == '__main__':
     file = "./training files/replayMem_mediumGrid.txt"
-    ExperienceReplayHelper(file).buildExperience(layoutName="mediumGrid", displayActive=False)
-    #ExperienceReplayHelper("smallGrid").buildExperience(layoutName="smallGrid", displayActive=False)
+    #ExperienceReplayHelper(file).buildExperience(layoutName="mediumGrid", displayActive=True)
+    ExperienceReplayHelper(file).buildExperience(layoutName="mediumGrid", displayActive=True)
